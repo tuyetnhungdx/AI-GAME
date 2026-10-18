@@ -53,7 +53,7 @@ export const AIGeneratorView: React.FC<AIGeneratorViewProps> = ({
 4. Thiết bị mạng: Router (tầng 3 - định tuyến), Switch, Hub.
 5. Điện toán đám mây và an toàn thông tin mạng.`
   );
-  const [count, setCount] = useState<number>(10);
+  const [count, setCount] = useState<number>(15);
   const [difficultyDistribution, setDifficultyDistribution] = useState('30% Nhận biết, 40% Thông hiểu, 30% Vận dụng');
 
   // Loading state
@@ -87,37 +87,65 @@ export const AIGeneratorView: React.FC<AIGeneratorViewProps> = ({
 
     // 3-phase loading animation
     setLoadingStep('AI đang phân tích cấu trúc bài học và chuẩn kiến thức THPT...');
-    await new Promise(r => setTimeout(r, 600));
+    await new Promise(r => setTimeout(r, 400));
 
     setLoadingStep('Đang khởi tạo các phương án nhiễu khoa học và code lập trình...');
-    await new Promise(r => setTimeout(r, 600));
+    await new Promise(r => setTimeout(r, 400));
 
     setLoadingStep('Đang kiểm tra đáp án đúng và phân bổ mức độ nhận thức...');
 
     try {
-      const res = await fetch('/api/ai/generate-questions', {
+      const res = await fetch('/api/generate-questions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           subject,
           grade,
-          textbook,
-          lessonTitle,
+          book: textbook,
+          lesson: lessonTitle,
           content,
-          count,
+          questionCount: count,
           difficultyDistribution,
         }),
       });
 
-      const data = await res.json();
-      if (data.success && Array.isArray(data.questions)) {
+      let data: any = null;
+      try {
+        data = await res.json();
+      } catch {
+        // non-json response
+      }
+
+      if (res.status === 404) {
+        throw new Error('Không tìm thấy API tạo câu hỏi');
+      }
+
+      if (!res.ok || !data?.success) {
+        const errorText = data?.error || data?.message;
+        if (res.status === 401 || res.status === 403 || errorText === 'Thiếu GEMINI_API_KEY') {
+          throw new Error('API key Gemini chưa được cấu hình');
+        }
+        if (res.status === 429 || errorText?.toLowerCase().includes('quota') || errorText?.toLowerCase().includes('hạn mức')) {
+          throw new Error('Đã hết hạn mức Gemini');
+        }
+        if (errorText === 'AI trả dữ liệu không hợp lệ') {
+          throw new Error('AI trả dữ liệu không hợp lệ');
+        }
+        if (errorText) {
+          throw new Error(errorText);
+        }
+        throw new Error('Không thể tạo câu hỏi lúc này');
+      }
+
+      if (Array.isArray(data.questions) && data.questions.length > 0) {
         setActiveQuestions(data.questions);
         sounds.playFanfare();
       } else {
-        throw new Error('Không thể tạo câu hỏi');
+        throw new Error('AI trả dữ liệu không hợp lệ');
       }
-    } catch {
-      setErrorMsg('Không thể tạo câu hỏi lúc này. Vui lòng bấm thử lại hoặc kiểm tra kết nối mạng.');
+    } catch (err: any) {
+      console.error('Lỗi gọi API /api/generate-questions:', err);
+      setErrorMsg(err.message || 'Không thể tạo câu hỏi lúc này. Vui lòng bấm thử lại.');
     } finally {
       setIsGenerating(false);
     }

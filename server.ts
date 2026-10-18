@@ -13,6 +13,7 @@ import {
   generateFullClassExcel, 
   generateQuickClassExcel 
 } from './src/utils/excelExport';
+import { generateQuestionsWithGemini } from './src/lib/geminiQuestionGenerator';
 
 dotenv.config();
 
@@ -52,182 +53,33 @@ const getGeminiClient = () => {
   });
 };
 
-// API: AI Generate Questions
-app.post('/api/ai/generate-questions', async (req: Request, res: Response) => {
-  const {
-    subject = 'Tin học',
-    grade = '12',
-    textbook = 'Kết nối tri thức',
-    lessonTitle = 'Bài học mới',
-    content = '',
-    count = 10,
-    difficultyDistribution = '30% Nhận biết, 40% Thông hiểu, 30% Vận dụng',
-  } = req.body;
-
-  const ai = getGeminiClient();
-
-  const prompt = `Bạn là chuyên gia sư phạm THPT Việt Nam và giáo viên bộ môn ${subject} giỏi.
-Hãy tạo ${count} câu hỏi trắc nghiệm khách quan 4 lựa chọn (A, B, C, D) cho học sinh lớp ${grade}, môn ${subject}, sách giáo khoa "${textbook}", bài học "${lessonTitle}".
-Dựa trên nội dung kiến thức được cung cấp:
-"""
-${content || `Kiến thức chuẩn chương trình giáo dục phổ thông THPT 2018 môn ${subject} lớp ${grade}: ${lessonTitle}`}
-"""
-
-Yêu cầu khắt khe:
-1. Bám sát nội dung, chính xác khoa học, không tự bịa thông tin.
-2. Đúng một đáp án chính xác duy nhất.
-3. 3 phương án nhiễu hợp lý, không có dạng "Tất cả đều đúng" hoặc "Tất cả đều sai".
-4. Phân bổ độ khó: ${difficultyDistribution}.
-5. Độ dài các phương án tương đối cân đối.
-6. Nếu môn là "Tin học" hoặc có liên quan đến lập trình, hãy tạo đoạn mã code thực tế (Python, C++, HTML, SQL, etc.) trong trường codeSnippet nếu phù hợp (Dự đoán kết quả, tìm lỗi, hoàn thiện code, truy vấn SQL, cấu trúc mạng).
-7. Giải thích ngắn gọn, súc tích (1-2 câu).
-8. correctAnswer là chỉ số số nguyên từ 0 đến 3 (tương ứng với vị trí trong mảng options: 0 là A, 1 là B, 2 là C, 3 là D).`;
-
-  if (ai) {
-    try {
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents: prompt,
-        config: {
-          systemInstruction: 'Bạn là chuyên gia khảo thí và sư phạm giáo dục phổ thông Việt Nam. Hãy trả về JSON chuẩn xác.',
-          responseMimeType: 'application/json',
-          responseSchema: {
-            type: Type.ARRAY,
-            description: 'Danh sách câu hỏi trắc nghiệm',
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                question: { type: Type.STRING, description: 'Nội dung câu hỏi' },
-                options: {
-                  type: Type.ARRAY,
-                  items: { type: Type.STRING },
-                  description: '4 lựa chọn A, B, C, D',
-                },
-                correctAnswer: { type: Type.INTEGER, description: 'Chỉ số đáp án đúng từ 0 đến 3' },
-                explanation: { type: Type.STRING, description: 'Giải thích ngắn gọn vì sao đáp án đó đúng' },
-                difficulty: {
-                  type: Type.STRING,
-                  description: 'Mức độ: Nhận biết, Thông hiểu, Vận dụng, hoặc Vận dụng cao',
-                },
-                topic: { type: Type.STRING, description: 'Chủ đề kiến thức' },
-                codeSnippet: { type: Type.STRING, description: 'Đoạn mã code nếu câu hỏi liên quan đến code' },
-                codeLanguage: { type: Type.STRING, description: 'Ngôn ngữ code: python, cpp, html, sql, javascript' },
-              },
-              required: ['question', 'options', 'correctAnswer', 'explanation', 'difficulty'],
-            },
-          },
-        },
+// API: AI Generate Questions (Primary endpoint requested: /api/generate-questions)
+const handleGenerateQuestionsRequest = async (req: Request, res: Response) => {
+  try {
+    const result = await generateQuestionsWithGemini(req.body);
+    if (!result.success) {
+      return res.status(result.status).json({
+        success: false,
+        error: result.error,
+        details: result.details,
       });
-
-      const parsed = JSON.parse(response.text || '[]');
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        const validatedQuestions: Question[] = parsed.map((q, idx) => ({
-          id: `ai-gen-${Date.now()}-${idx}`,
-          question: q.question,
-          options: Array.isArray(q.options) && q.options.length >= 4 ? q.options.slice(0, 4) : ['A', 'B', 'C', 'D'],
-          correctAnswer: typeof q.correctAnswer === 'number' && q.correctAnswer >= 0 && q.correctAnswer <= 3 ? q.correctAnswer : 0,
-          explanation: q.explanation || 'Đáp án đúng theo chuẩn SGK.',
-          difficulty: q.difficulty || 'Thông hiểu',
-          topic: q.topic || lessonTitle,
-          codeSnippet: q.codeSnippet || undefined,
-          codeLanguage: q.codeLanguage || (subject === 'Tin học' ? 'python' : undefined),
-        }));
-        return res.json({ success: true, questions: validatedQuestions, source: 'gemini' });
-      }
-    } catch (error) {
-      console.warn('Gemini generate error, falling back to smart educational generator:', error);
     }
-  }
-
-  // High quality pedagogical fallback when offline or no API key
-  const fallbackQuestions: Question[] = [
-    {
-      id: `fb-1-${Date.now()}`,
-      question: `Theo nội dung bài học "${lessonTitle}", khái niệm cốt lõi nào sau đây được định nghĩa chính xác nhất?`,
-      options: [
-        `Khái niệm được chuẩn hóa trong chương trình SGK ${textbook} lớp ${grade}`,
-        'Khái niệm chỉ mang tính chất giả định chưa được kiểm chứng thực tế',
-        'Khái niệm chỉ áp dụng cho máy tính cơ khí thế hệ thứ nhất',
-        'Khái niệm không có tính ứng dụng trong kỷ nguyên số'
-      ],
-      correctAnswer: 0,
-      explanation: `Bám sát định nghĩa chuẩn của bài "${lessonTitle}" SGK ${textbook}.`,
-      difficulty: 'Nhận biết',
-      topic: lessonTitle,
-    },
-    {
-      id: `fb-2-${Date.now()}`,
-      question: `Cho đoạn mã mô phỏng quy trình xử lý dữ liệu môn ${subject} sau, kết quả xuất ra là gì?`,
-      options: [
-        'Dữ liệu đã được chuẩn hóa và sắp xếp tăng dần',
-        'Chương trình rơi vào vòng lặp vô tận',
-        'Xảy ra lỗi chia cho 0 (ZeroDivisionError)',
-        'Danh sách bị xóa sạch không còn phần tử'
-      ],
-      correctAnswer: 0,
-      explanation: 'Thuật toán thực thi tuần tự và hoàn thành chuẩn xác theo logic.',
-      difficulty: 'Thông hiểu',
-      topic: 'Thuật toán & Xử lý dữ liệu',
-      codeSnippet: `# Xử lý dữ liệu bài học: ${lessonTitle}\ndata = [12, 45, 23, 67, 8]\nsorted_data = sorted(data)\nprint(f"Ket qua: {sorted_data}")`,
-      codeLanguage: 'python',
-    },
-    {
-      id: `fb-3-${Date.now()}`,
-      question: `Trong quá trình vận dụng kiến thức "${lessonTitle}" vào giải quyết bài toán thực tế, bước quan trọng đầu tiên là:`,
-      options: [
-        'Xác định rõ Input, Output và điều kiện ràng buộc của bài toán',
-        'Lập tức viết code ngay mà không cần phân tích yêu cầu',
-        'Bỏ qua các trường hợp ngoại lệ để tiết kiệm thời gian',
-        'Sao chép kết quả từ một bài toán ngẫu nhiên trên mạng'
-      ],
-      correctAnswer: 0,
-      explanation: 'Phân tích xác định Input/Output là nền tảng cốt lõi trong tư duy thuật toán và khoa học.',
-      difficulty: 'Vận dụng',
-      topic: lessonTitle,
-    },
-    {
-      id: `fb-4-${Date.now()}`,
-      question: `Biện pháp nào sau đây giúp tối ưu hóa hiệu quả khi triển khai giải pháp cho bài học "${lessonTitle}"?`,
-      options: [
-        'Tổ chức cấu trúc dữ liệu hợp lý và kiểm thử từng mô-đun',
-        'Tăng gấp đôi số lượng câu lệnh lặp không cần thiết',
-        'Tắt các cơ chế cảnh báo lỗi hệ thống',
-        'Không lưu trữ lại lịch sử thực thi'
-      ],
-      correctAnswer: 0,
-      explanation: 'Cấu trúc dữ liệu tối ưu cùng quy trình kiểm thử mô-đun giúp giảm thiểu lỗi phát sinh.',
-      difficulty: 'Vận dụng cao',
-      topic: lessonTitle,
-    },
-    {
-      id: `fb-5-${Date.now()}`,
-      question: `Đặc điểm phân biệt nổi bật nhất của công nghệ hiện đại được đề cập trong bài "${lessonTitle}" là gì?`,
-      options: [
-        'Tính tự động hóa cao, liên thông và khả năng mở rộng trên đám mây',
-        'Chỉ hoạt động được trên hệ thống mạng cục bộ không nối Internet',
-        'Đòi hỏi người dùng phải can thiệp thủ công ở mọi thao tác',
-        'Không tương thích với các thiết bị thông minh cầm tay'
-      ],
-      correctAnswer: 0,
-      explanation: 'Công nghệ giáo dục hiện đại gắn liền với đám mây, tự động hóa và kết nối đa nền tảng.',
-      difficulty: 'Thông hiểu',
-      topic: lessonTitle,
-    }
-  ];
-
-  // Repeat or slice to match requested count
-  const result: Question[] = [];
-  for (let i = 0; i < count; i++) {
-    const template = fallbackQuestions[i % fallbackQuestions.length];
-    result.push({
-      ...template,
-      id: `gen-${Date.now()}-${i + 1}`,
-      question: i >= fallbackQuestions.length ? `[Mở rộng ${i + 1}] ${template.question}` : template.question,
+    return res.status(200).json({
+      success: true,
+      questions: result.questions,
+      count: result.count,
+    });
+  } catch (error: any) {
+    console.error('[SERVER /api/generate-questions Unhandled Error]:', error);
+    return res.status(500).json({
+      success: false,
+      error: `Lỗi máy chủ AI: ${error.message || 'Không xác định'}`,
     });
   }
+};
 
-  return res.json({ success: true, questions: result, source: 'fallback' });
-});
+app.post('/api/generate-questions', handleGenerateQuestionsRequest);
+app.post('/api/ai/generate-questions', handleGenerateQuestionsRequest);
 
 // API: AI Rewrite Question
 app.post('/api/ai/rewrite-question', async (req: Request, res: Response) => {
