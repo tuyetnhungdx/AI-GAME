@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { Difficulty, Game, GameType, Grade, Question, Subject } from '../../types';
 import { sounds } from '../../utils/audio';
+import { demoQuestionsTin12 } from '../../data/initialData';
 import { CodeBlock } from '../CodeBlock';
 import { TeacherQuestionImporter } from './TeacherQuestionImporter';
 
@@ -111,8 +112,10 @@ export const AIGeneratorView: React.FC<AIGeneratorViewProps> = ({
       });
 
       let data: any = null;
+      let rawText = '';
       try {
-        data = await res.json();
+        rawText = await res.text();
+        data = JSON.parse(rawText);
       } catch {
         // non-json response
       }
@@ -122,20 +125,52 @@ export const AIGeneratorView: React.FC<AIGeneratorViewProps> = ({
       }
 
       if (!res.ok || !data?.success) {
-        const errorText = data?.error || data?.message;
-        if (res.status === 401 || res.status === 403 || errorText === 'Thiếu GEMINI_API_KEY') {
+        const errorText = (typeof data?.error === 'string' ? data.error : '') || 
+                          (typeof data?.message === 'string' ? data.message : '') || 
+                          rawText;
+
+        // 1. Thiếu hoặc sai API key
+        if (
+          res.status === 401 || 
+          res.status === 403 || 
+          errorText.includes('GEMINI_API_KEY') ||
+          errorText.toLowerCase().includes('thiếu gemini_api_key') ||
+          errorText.toLowerCase().includes('api key')
+        ) {
+          setShowApiKeyGuide(true);
           throw new Error('API key Gemini chưa được cấu hình');
         }
-        if (res.status === 429 || errorText?.toLowerCase().includes('quota') || errorText?.toLowerCase().includes('hạn mức')) {
+
+        // 2. Hết hạn mức
+        if (
+          res.status === 429 || 
+          errorText.toLowerCase().includes('quota') || 
+          errorText.toLowerCase().includes('hạn mức') ||
+          errorText.toLowerCase().includes('resource_exhausted')
+        ) {
           throw new Error('Đã hết hạn mức Gemini');
         }
-        if (errorText === 'AI trả dữ liệu không hợp lệ') {
+
+        // 3. Timeout từ serverless / Vercel
+        if (res.status === 504 || res.status === 502 || errorText.toLowerCase().includes('timeout')) {
+          throw new Error('Máy chủ phản hồi quá lâu (Timeout). Vui lòng thử lại với 5 hoặc 10 câu.');
+        }
+
+        // 4. AI trả dữ liệu không hợp lệ
+        if (errorText.includes('AI trả dữ liệu không hợp lệ')) {
           throw new Error('AI trả dữ liệu không hợp lệ');
         }
-        if (errorText) {
-          throw new Error(errorText);
+
+        // 5. Lỗi cụ thể từ server
+        if (data?.error && typeof data.error === 'string') {
+          throw new Error(data.error);
         }
-        throw new Error('Không thể tạo câu hỏi lúc này');
+
+        if (res.status >= 500) {
+          throw new Error(`Lỗi máy chủ AI (${res.status}): ${errorText.slice(0, 100) || 'Vui lòng thử lại'}`);
+        }
+
+        throw new Error(errorText || 'Không thể tạo câu hỏi lúc này');
       }
 
       if (Array.isArray(data.questions) && data.questions.length > 0) {
@@ -454,7 +489,18 @@ export const AIGeneratorView: React.FC<AIGeneratorViewProps> = ({
                     <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0" />
                     <span className="font-medium">{errorMsg}</span>
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sounds.playFanfare();
+                        setActiveQuestions(demoQuestionsTin12.slice(0, count || 10));
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition-colors shadow-sm"
+                      title="Nạp ngay 10 câu hỏi trắc nghiệm Tin học 12 chuẩn SGK đã thẩm định"
+                    >
+                      ⚡ Nạp bộ câu hỏi chuẩn SGK ngay
+                    </button>
                     {errorMsg.toLowerCase().includes('api key') && (
                       <button
                         type="button"

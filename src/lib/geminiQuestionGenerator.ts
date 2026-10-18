@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from '@google/genai';
-import { Question } from '../types';
+import type { Question } from '../types';
 
 export interface GenerateQuestionsParams {
   subject?: string;
@@ -106,6 +106,9 @@ YÊU CẦU BẮT BUỘC:
       config: {
         systemInstruction:
           'Bạn là chuyên gia khảo thí và sư phạm giáo dục phổ thông Việt Nam. Hãy trả về JSON thuần chuẩn xác theo schema, không bọc markdown.',
+        thinkingConfig: {
+          thinkingBudget: 0,
+        },
         responseMimeType: 'application/json',
         responseSchema: {
           type: Type.ARRAY,
