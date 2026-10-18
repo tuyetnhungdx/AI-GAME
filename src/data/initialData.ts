@@ -1,4 +1,4 @@
-import { ClassGroup, Game, Question, Room, TeacherProfile } from '../types';
+import { ClassGroup, Game, ParticipantAnswer, Question, Room, TeacherProfile } from '../types';
 
 export const initialTeacher: TeacherProfile = {
   id: 'teacher-tn-01',
@@ -546,34 +546,50 @@ export const demoGames: Game[] = [
   }
 ];
 
+// Names bank for 42 students of 12A1
+const NAMES_12A1 = [
+  'Nguyễn Văn An', 'Trần Thu Hà', 'Lê Hoàng Nam', 'Phạm Quỳnh Mai', 'Hoàng Quốc Bảo',
+  'Đặng Thảo Linh', 'Vũ Đức Minh', 'Bùi Phương Thảo', 'Đỗ Quang Huy', 'Nguyễn Thị Hương',
+  'Phan Thanh Tùng', 'Võ Hoài Nam', 'Lâm Gia Bảo', 'Đoàn Ngọc Trâm', 'Trịnh Nhật Minh',
+  'Nguyễn Khánh Linh', 'Dương Tuấn Kiệt', 'Hồ Bích Phương', 'Lê Minh Khôi', 'Trần Thảo My',
+  'Ngô Đình Trọng', 'Tô Hải Đăng', 'Đinh Diệu Huyền', 'Trần Hữu Thắng', 'Nguyễn Hồng Phúc',
+  'Cao Tuấn Dũng', 'Lý Kim Ngân', 'Mai Thanh Vân', 'Phan Hoàng Long', 'Nguyễn Trúc Quỳnh',
+  'Tạ Đình Phong', 'Bùi Gia Khiêm', 'Lê Yến Nhi', 'Trần Tuấn Anh', 'Vũ Mai Lan',
+  'Nguyễn Thành Đạt', 'Lê Bảo Châu', 'Đỗ Trung Kiên', 'Huỳnh Thảo Vy',
+  // 3 students who haven't participated yet:
+  'Nguyễn Minh Anh', 'Trần Đình Khôi', 'Hoàng Bích Ngọc'
+];
+
 export const demoClasses: ClassGroup[] = [
   {
     id: 'class-12a1',
     name: '12A1',
     schoolYear: '2025 - 2026',
-    studentCount: 38,
-    students: [
-      { id: 'st-01', fullName: 'Nguyễn Văn An', studentCode: '12A101', completedGames: 12, avgScore: 890 },
-      { id: 'st-02', fullName: 'Trần Thu Hà', studentCode: '12A102', completedGames: 12, avgScore: 920 },
-      { id: 'st-03', fullName: 'Lê Hoàng Nam', studentCode: '12A103', completedGames: 11, avgScore: 780 },
-      { id: 'st-04', fullName: 'Phạm Quỳnh Mai', studentCode: '12A104', completedGames: 12, avgScore: 940 },
-      { id: 'st-05', fullName: 'Hoàng Quốc Bảo', studentCode: '12A105', completedGames: 10, avgScore: 810 },
-      { id: 'st-06', fullName: 'Đặng Thảo Linh', studentCode: '12A106', completedGames: 12, avgScore: 860 },
-      { id: 'st-07', fullName: 'Vũ Đức Minh', studentCode: '12A107', completedGames: 9, avgScore: 750 },
-      { id: 'st-08', fullName: 'Bùi Phương Thảo', studentCode: '12A108', completedGames: 11, avgScore: 880 },
-    ],
+    studentCount: 42,
+    students: NAMES_12A1.map((name, idx) => ({
+      id: `st-12a1-${String(idx + 1).padStart(2, '0')}`,
+      fullName: name,
+      studentCode: `12A1${String(idx + 1).padStart(2, '0')}`,
+      completedGames: idx < 39 ? 12 : 8,
+      avgScore: idx < 39 ? Math.round(750 + ((idx * 17) % 230)) : 0,
+    })),
   },
   {
     id: 'class-12a2',
     name: '12A2',
     schoolYear: '2025 - 2026',
-    studentCount: 36,
+    studentCount: 38,
     students: [
-      { id: 'st-21', fullName: 'Dương Tấn Đạt', studentCode: '12A201', completedGames: 10, avgScore: 760 },
-      { id: 'st-22', fullName: 'Lý Diệu Hương', studentCode: '12A202', completedGames: 11, avgScore: 840 },
-      { id: 'st-23', fullName: 'Ngô Trọng Nghĩa', studentCode: '12A203', completedGames: 9, avgScore: 720 },
-      { id: 'st-24', fullName: 'Phan Bảo Trâm', studentCode: '12A204', completedGames: 11, avgScore: 890 },
-    ],
+      'Dương Tấn Đạt', 'Lý Diệu Hương', 'Ngô Trọng Nghĩa', 'Phan Bảo Trâm', 'Nguyễn Quốc Tuấn',
+      'Đặng Hoài An', 'Trần Minh Quân', 'Lê Thị Thu', 'Vũ Hải Long', 'Phạm Quỳnh Nga',
+      'Hoàng Đức Thắng', 'Bùi Thu Trang', 'Đỗ Văn Hùng', 'Nguyễn Phương Thảo', 'Lê Cẩm Tú'
+    ].map((name, idx) => ({
+      id: `st-12a2-${String(idx + 1).padStart(2, '0')}`,
+      fullName: name,
+      studentCode: `12A2${String(idx + 1).padStart(2, '0')}`,
+      completedGames: 11,
+      avgScore: Math.round(740 + ((idx * 19) % 220)),
+    })),
   },
   {
     id: 'class-11a1',
@@ -581,9 +597,31 @@ export const demoClasses: ClassGroup[] = [
     schoolYear: '2025 - 2026',
     studentCount: 40,
     students: [
-      { id: 'st-31', fullName: 'Trịnh Hoàng Quân', studentCode: '11A101', completedGames: 8, avgScore: 830 },
-      { id: 'st-32', fullName: 'Lưu Ngọc Ánh', studentCode: '11A102', completedGames: 8, avgScore: 870 },
-    ],
+      'Trịnh Hoàng Quân', 'Lưu Ngọc Ánh', 'Nguyễn Đình Phúc', 'Trần Thảo Ly', 'Phạm Quốc Bảo',
+      'Đỗ Thanh Mai', 'Lê Hữu Đạt', 'Vũ Quỳnh Như', 'Hoàng Bảo Long', 'Bùi Kim Oanh'
+    ].map((name, idx) => ({
+      id: `st-11a1-${String(idx + 1).padStart(2, '0')}`,
+      fullName: name,
+      studentCode: `11A1${String(idx + 1).padStart(2, '0')}`,
+      completedGames: 9,
+      avgScore: Math.round(760 + ((idx * 13) % 200)),
+    })),
+  },
+  {
+    id: 'class-11a2',
+    name: '11A2',
+    schoolYear: '2025 - 2026',
+    studentCount: 39,
+    students: [
+      'Nguyễn Đức Huy', 'Trần Yến My', 'Lê Tuấn Hưng', 'Phan Thu Giang', 'Hoàng Khải Minh',
+      'Đặng Thanh Hà', 'Vũ Minh Trí', 'Bùi Lan Chi', 'Đỗ Văn Nam', 'Phạm Thùy Linh'
+    ].map((name, idx) => ({
+      id: `st-11a2-${String(idx + 1).padStart(2, '0')}`,
+      fullName: name,
+      studentCode: `11A2${String(idx + 1).padStart(2, '0')}`,
+      completedGames: 8,
+      avgScore: Math.round(730 + ((idx * 21) % 210)),
+    })),
   },
   {
     id: 'class-10a1',
@@ -591,79 +629,117 @@ export const demoClasses: ClassGroup[] = [
     schoolYear: '2025 - 2026',
     studentCount: 42,
     students: [
-      { id: 'st-41', fullName: 'Tạ Minh Khang', studentCode: '10A101', completedGames: 6, avgScore: 810 },
-      { id: 'st-42', fullName: 'Chu Khánh Vy', studentCode: '10A102', completedGames: 6, avgScore: 850 },
-    ],
+      'Tạ Minh Khang', 'Chu Khánh Vy', 'Nguyễn Tấn Lộc', 'Trần Bích Ngọc', 'Lê Hạo Nhiên',
+      'Phạm Trà My', 'Hoàng Gia Huy', 'Đặng Phương Uyên', 'Vũ Tuấn Kiệt', 'Bùi Thảo Trang'
+    ].map((name, idx) => ({
+      id: `st-10a1-${String(idx + 1).padStart(2, '0')}`,
+      fullName: name,
+      studentCode: `10A1${String(idx + 1).padStart(2, '0')}`,
+      completedGames: 7,
+      avgScore: Math.round(750 + ((idx * 15) % 190)),
+    })),
+  },
+  {
+    id: 'class-10a2',
+    name: '10A2',
+    schoolYear: '2025 - 2026',
+    studentCount: 41,
+    students: [
+      'Nguyễn Hoàng Dũng', 'Lê Bảo Ngọc', 'Trần Công Thành', 'Phạm Thảo Vy', 'Đỗ Minh Trí',
+      'Vũ Thu Ngân', 'Hoàng Anh Quân', 'Bùi Mai Phương', 'Đặng Tuấn Anh', 'Lưu Hồng Hạnh'
+    ].map((name, idx) => ({
+      id: `st-10a2-${String(idx + 1).padStart(2, '0')}`,
+      fullName: name,
+      studentCode: `10A2${String(idx + 1).padStart(2, '0')}`,
+      completedGames: 6,
+      avgScore: Math.round(720 + ((idx * 17) % 210)),
+    })),
   },
 ];
+
+// Generate 39 participating students for 12A1 with detailed answers for each of the 10 questions
+const PARTICIPANT_SCORES = [
+  980, 960, 950, 940, 920, 910, 890, 880, 870, 860,
+  850, 850, 840, 830, 820, 820, 810, 800, 800, 790,
+  790, 780, 780, 770, 760, 750, 740, 730, 720, 710,
+  700, 680, 670, 650, 640, 620, 590, 560, 540
+];
+
+const optionLetters = ['A', 'B', 'C', 'D'];
 
 export const demoRoomTIN012: Room = {
   id: 'room-tin-012',
   gameId: 'game-racing-tin12',
   roomCode: 'TIN012',
-  status: 'waiting',
+  status: 'ended',
   createdAt: '2026-10-18T07:10:00Z',
+  startedAt: '2026-10-18T07:15:00Z',
+  endedAt: '2026-10-18T07:35:00Z',
   game: demoGames[0],
-  participants: [
-    {
-      id: 'p-01',
+  participants: NAMES_12A1.slice(0, 39).map((name, idx) => {
+    const rawScore = PARTICIPANT_SCORES[idx] || 780;
+    const correctCount = Math.min(10, Math.max(5, Math.round(rawScore / 100)));
+    const wrongCount = 10 - correctCount;
+    const totalTimeSeconds = Math.round(35 + ((idx * 7) % 35));
+
+    // Generate detailed answers for all 10 questions
+    const answers: ParticipantAnswer[] = demoQuestionsTin12.map((q, qIdx) => {
+      // Questions 2 and 9 are harder (code questions)
+      const isHardQuestion = qIdx === 1 || qIdx === 8;
+      let isCorrect = true;
+      if (wrongCount >= 4 && isHardQuestion) {
+        isCorrect = false;
+      } else if (wrongCount >= 2 && qIdx % 4 === 1) {
+        isCorrect = false;
+      } else if (wrongCount >= 1 && qIdx === 9 && idx > 25) {
+        isCorrect = false;
+      } else if (wrongCount >= 3 && qIdx === 5 && idx > 30) {
+        isCorrect = false;
+      }
+
+      const chosen = isCorrect ? q.correctAnswer : (q.correctAnswer + 1) % 4;
+      const respTime = Math.round(isHardQuestion ? 6 + ((idx + qIdx) % 8) : 3 + ((idx + qIdx) % 5));
+      const speedBonus = isCorrect ? Math.round(Math.max(0, 20 - respTime) * 3) : 0;
+      const baseScore = isCorrect ? 80 : 0;
+      const awarded = baseScore + speedBonus;
+
+      return {
+        participantId: `p-${idx + 1}`,
+        questionId: q.id,
+        questionNumber: qIdx + 1,
+        questionText: q.question,
+        chosenAnswer: chosen,
+        chosenAnswerText: `${optionLetters[chosen]}. ${q.options[chosen] || ''}`,
+        correctAnswer: q.correctAnswer,
+        correctAnswerText: `${optionLetters[q.correctAnswer]}. ${q.options[q.correctAnswer] || ''}`,
+        isCorrect,
+        responseTime: respTime,
+        baseScore,
+        speedBonus,
+        streakBonus: isCorrect && qIdx > 2 ? 10 : 0,
+        scoreAwarded: awarded,
+      };
+    });
+
+    return {
+      id: `p-${String(idx + 1).padStart(2, '0')}`,
       roomId: 'room-tin-012',
-      studentName: 'Nguyễn Văn An',
+      studentId: `st-12a1-${String(idx + 1).padStart(2, '0')}`,
+      studentCode: `12A1${String(idx + 1).padStart(2, '0')}`,
+      studentName: name,
       className: '12A1',
-      score: 840,
-      streak: 3,
-      maxStreak: 4,
-      correctCount: 8,
-      wrongCount: 2,
-      totalTimeSeconds: 45,
-      joinedAt: '2026-10-18T07:11:00Z',
-      answers: [],
-      finished: false,
-    },
-    {
-      id: 'p-02',
-      roomId: 'room-tin-012',
-      studentName: 'Trần Thu Hà',
-      className: '12A1',
-      score: 960,
-      streak: 5,
-      maxStreak: 5,
-      correctCount: 9,
-      wrongCount: 1,
-      totalTimeSeconds: 38,
-      joinedAt: '2026-10-18T07:11:20Z',
-      answers: [],
-      finished: false,
-    },
-    {
-      id: 'p-03',
-      roomId: 'room-tin-012',
-      studentName: 'Lê Hoàng Nam',
-      className: '12A1',
-      score: 720,
-      streak: 2,
-      maxStreak: 3,
-      correctCount: 7,
-      wrongCount: 3,
-      totalTimeSeconds: 52,
-      joinedAt: '2026-10-18T07:11:45Z',
-      answers: [],
-      finished: false,
-    },
-    {
-      id: 'p-04',
-      roomId: 'room-tin-012',
-      studentName: 'Phạm Quỳnh Mai',
-      className: '12A1',
-      score: 910,
-      streak: 4,
-      maxStreak: 4,
-      correctCount: 9,
-      wrongCount: 1,
-      totalTimeSeconds: 41,
-      joinedAt: '2026-10-18T07:12:05Z',
-      answers: [],
-      finished: false,
-    },
-  ],
+      score: rawScore,
+      streak: Math.min(5, correctCount),
+      maxStreak: Math.min(6, correctCount),
+      correctCount,
+      wrongCount,
+      totalTimeSeconds,
+      joinedAt: `2026-10-18T07:11:${String(10 + (idx % 45)).padStart(2, '0')}Z`,
+      completedAt: `2026-10-18T07:25:${String(10 + (idx % 45)).padStart(2, '0')}Z`,
+      rank: idx + 1,
+      answers,
+      finished: true,
+    };
+  }),
 };
+

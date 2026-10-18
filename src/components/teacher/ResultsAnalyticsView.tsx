@@ -6,6 +6,7 @@ import {
   CheckCircle, 
   ChevronDown, 
   Clock, 
+  FileSpreadsheet,
   FileText, 
   HelpCircle, 
   Lightbulb, 
@@ -18,16 +19,26 @@ import {
   Trophy, 
   UserCheck, 
   Users, 
-  XCircle 
+  XCircle,
+  Database
 } from 'lucide-react';
-import { AIAnalysisReport, Room } from '../../types';
+import { AIAnalysisReport, ClassGroup, Game, Room } from '../../types';
+import { demoClasses, demoGames } from '../../data/initialData';
 import { sounds } from '../../utils/audio';
+import { ClassExcelExportPanel } from './ClassExcelExportPanel';
+import { SupabaseSetupModal } from './SupabaseSetupModal';
 
 interface ResultsAnalyticsViewProps {
   room: Room;
+  classes?: ClassGroup[];
+  games?: Game[];
 }
 
-export const ResultsAnalyticsView: React.FC<ResultsAnalyticsViewProps> = ({ room }) => {
+export const ResultsAnalyticsView: React.FC<ResultsAnalyticsViewProps> = ({ 
+  room,
+  classes = demoClasses,
+  games = demoGames,
+}) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'score' | 'name' | 'correct'>('score');
   const [sortAsc, setSortAsc] = useState(false);
@@ -35,6 +46,7 @@ export const ResultsAnalyticsView: React.FC<ResultsAnalyticsViewProps> = ({ room
   // AI Analysis state
   const [aiReport, setAiReport] = useState<AIAnalysisReport | null>(null);
   const [isLoadingAi, setIsLoadingAi] = useState(false);
+  const [showSupabaseModal, setShowSupabaseModal] = useState(false);
 
   // Metrics calculation
   const participants = room.participants;
@@ -124,7 +136,32 @@ export const ResultsAnalyticsView: React.FC<ResultsAnalyticsViewProps> = ({ room
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            onClick={() => {
+              sounds.playSpinClick();
+              setShowSupabaseModal(true);
+            }}
+            className="px-3.5 py-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-xs font-bold text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer"
+            title="Xem mã SQL và kiểm tra kết nối Supabase"
+          >
+            <Database className="w-4 h-4 text-emerald-400" />
+            <span>KẾT NỐI SUPABASE</span>
+          </button>
+
+          <a
+            href="#excel-export-section"
+            onClick={(e) => {
+              e.preventDefault();
+              sounds.playSpinClick();
+              document.getElementById('excel-export-section')?.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs sm:text-sm shadow-lg shadow-emerald-900/30 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-amber-300" />
+            <span>XUẤT EXCEL</span>
+          </a>
+
           <button
             onClick={handlePrint}
             className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 border border-slate-700 flex items-center gap-1.5 transition-all"
@@ -185,6 +222,17 @@ export const ResultsAnalyticsView: React.FC<ResultsAnalyticsViewProps> = ({ room
           <div className="text-[11px] text-slate-400">Thời gian TB</div>
           <div className="text-xl font-mono font-black text-amber-300">{avgTime}s</div>
         </div>
+      </div>
+
+      {/* FEATURE: XUẤT KẾT QUẢ THEO LỚP RA EXCEL */}
+      <div id="excel-export-section" className="scroll-mt-6">
+        <ClassExcelExportPanel
+          classes={classes}
+          games={games}
+          activeRoom={room}
+          defaultClassId="12A1"
+          defaultGameId={room.game.id}
+        />
       </div>
 
       {/* AI Pedagogical Analysis Report Card */}
@@ -422,6 +470,12 @@ export const ResultsAnalyticsView: React.FC<ResultsAnalyticsViewProps> = ({ room
           </table>
         </div>
       </div>
+
+      {/* Supabase Setup & SQL Modal */}
+      <SupabaseSetupModal
+        isOpen={showSupabaseModal}
+        onClose={() => setShowSupabaseModal(false)}
+      />
     </div>
   );
 };

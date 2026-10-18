@@ -22,7 +22,9 @@ export type GameType =
   | 'space'
   | 'castle'
   | 'treasure'
-  | 'arena';
+  | 'arena'
+  | 'millionaire'
+  | 'balloon';
 
 export type GameMode = 
   | 'individual' 
@@ -30,6 +32,13 @@ export type GameMode =
   | 'live_class' 
   | 'self_study' 
   | 'homework';
+
+export type GameEngineState = 
+  | 'WAITING'
+  | 'PLAYING'
+  | 'ANSWERED'
+  | 'NEXT_QUESTION'
+  | 'FINISHED';
 
 export interface Question {
   id: string;
@@ -39,18 +48,27 @@ export interface Question {
   explanation: string;
   difficulty: Difficulty;
   topic?: string;
-  codeSnippet?: string;
-  codeLanguage?: 'python' | 'cpp' | 'html' | 'javascript' | 'sql';
+  imageUrl?: string | null;
+  codeSnippet?: string | null;
+  codeLanguage?: 'python' | 'cpp' | 'html' | 'javascript' | 'sql' | string;
 }
 
 export interface GameSettings {
-  timePerQuestion: number; // seconds
+  timePerQuestion: number; // 10, 15, 20, 30, 45, 60
   showExplanation: boolean;
-  allowRetry: boolean;
-  shuffleQuestions: boolean;
-  shuffleOptions: boolean;
-  musicEnabled: boolean;
-  soundEffects: boolean;
+  showLeaderboard?: boolean;
+  randomizeQuestions?: boolean;
+  randomizeAnswers?: boolean;
+  shuffleQuestions?: boolean;
+  shuffleOptions?: boolean;
+  speedBonus?: boolean;
+  streakBonus?: boolean;
+  allowRetry?: boolean;
+  allowReplay?: boolean;
+  autoNextQuestion?: boolean;
+  soundEnabled?: boolean;
+  musicEnabled?: boolean;
+  soundEffects?: boolean;
   mode: GameMode;
   homeworkDeadline?: string;
   maxAttempts?: number;
@@ -72,11 +90,44 @@ export interface Game {
   averageScore?: number;
 }
 
+export interface ParticipantAnswer {
+  participantId?: string;
+  questionId: string;
+  questionNumber?: number;
+  questionText?: string;
+  chosenAnswer: number;
+  chosenAnswerText?: string;
+  correctAnswer?: number;
+  correctAnswerText?: string;
+  isCorrect: boolean;
+  responseTime: number; // seconds
+  baseScore: number;
+  speedBonus: number;
+  streakBonus: number;
+  scoreAwarded: number;
+  totalScore?: number;
+  createdAt?: string;
+}
+
+export type TeamId = 'red' | 'blue' | 'yellow' | 'purple';
+
+export interface TeamInfo {
+  id: TeamId;
+  name: string;
+  color: string;
+  carEmoji: string;
+  members: string[];
+  totalScore: number;
+}
+
 export interface Participant {
   id: string;
   roomId: string;
+  studentId?: string;
+  studentCode?: string;
   studentName: string;
   className: string;
+  teamId?: TeamId;
   score: number;
   streak: number;
   maxStreak: number;
@@ -84,13 +135,9 @@ export interface Participant {
   wrongCount: number;
   totalTimeSeconds: number;
   joinedAt: string;
-  answers: {
-    questionId: string;
-    chosenAnswer: number;
-    isCorrect: boolean;
-    responseTime: number;
-    scoreAwarded: number;
-  }[];
+  completedAt?: string;
+  rank?: number;
+  answers: ParticipantAnswer[];
   finished: boolean;
 }
 
@@ -149,4 +196,69 @@ export interface AIAnalysisReport {
   }[];
   reviewRecommendations: string[];
   suggestedNextActivities: string[];
+}
+
+export type ScorePolicy = 'highest' | 'first' | 'latest' | 'average';
+export type TimeFilterOption = 'all' | 'today' | 'week' | 'month' | 'semester1' | 'semester2' | 'custom';
+
+export interface ClassStudentRow {
+  stt: number;
+  studentId: string;
+  studentCode: string;
+  fullName: string;
+  className: string;
+  participated: boolean;
+  score10: number | null; // scale 0-10, e.g. 8.4
+  rawScore: number | null; // e.g. 840
+  correctCount: number | null;
+  wrongCount: number | null;
+  accuracyPercent: number | null; // e.g. 80 (%)
+  totalTimeSeconds: number | null;
+  rank: number | null;
+  completedAt: string | null;
+  status: 'Hoàn thành' | 'Chưa tham gia';
+  attemptCount: number;
+  answers: ParticipantAnswer[];
+}
+
+export interface ClassExportSummary {
+  classInfo: ClassGroup;
+  game: Game;
+  roomCode: string;
+  exportDate: string;
+  teacherName: string;
+  schoolName: string;
+  totalStudents: number;
+  participatedCount: number;
+  absentCount: number;
+  completionRatePercent: number; // e.g. 92.9%
+  avgScore10: number; // e.g. 8.2
+  avgAccuracyPercent: number; // e.g. 82%
+  maxScore10: number;
+  minScore10: number;
+  students: ClassStudentRow[];
+}
+
+export interface QuestionAnalysisRow {
+  index: number;
+  questionText: string;
+  totalAnswered: number;
+  correctCount: number;
+  wrongCount: number;
+  accuracyPercent: number;
+  avgResponseTimeSeconds: number;
+  difficulty: string;
+  topic: string;
+  evaluation: 'Nắm tốt' | 'Cơ bản đạt' | 'Cần củng cố' | 'Cần ôn lại';
+}
+
+export interface ExcelExportFilter {
+  classId: string; // 'all' or class.name e.g. '12A1'
+  gameId: string; // 'all' or game.id
+  timeRange: TimeFilterOption;
+  startDate?: string;
+  endDate?: string;
+  scorePolicy: ScorePolicy;
+  sortBy: 'roster' | 'score';
+  exportMode: 'full' | 'quick';
 }

@@ -17,8 +17,9 @@ import {
   demoRoomTIN012, 
   initialTeacher 
 } from './data/initialData';
-import { ClassGroup, Game, Participant, Room, TeacherProfile } from './types';
+import { ClassGroup, Game, Participant, ParticipantAnswer, Room, TeacherProfile } from './types';
 import { sounds } from './utils/audio';
+import { saveGameResultToSupabase } from './lib/supabase';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>('home');
@@ -290,17 +291,85 @@ export default function App() {
     };
   };
 
-  // Action: Game finished
-  const handleFinishGame = (finalScore: number, correctCount: number, wrongCount: number) => {
+  // Action: Game finished with complete question answers and Supabase sync
+  const handleFinishGame = async (finalScore: number, answers: ParticipantAnswer[]) => {
+    const correctCount = answers.filter((a) => a.isCorrect).length;
+    const wrongCount = answers.length - correctCount;
     setFinalGameStats({ score: finalScore, correctCount, wrongCount });
+
     if (activeRoom && currentParticipant) {
+      const totalTime = answers.reduce((acc, a) => acc + (a.responseTime || 0), 0);
+      const accuracyRate = answers.length > 0 ? Math.round((correctCount / answers.length) * 100) : 0;
+      const completedAt = new Date().toISOString();
+
+      const updatedParticipant: Participant = {
+        ...currentParticipant,
+        score: finalScore,
+        correctCount,
+        wrongCount,
+        totalTimeSeconds: totalTime,
+        completedAt,
+        answers,
+        finished: true,
+      };
+
       const updatedParticipants = activeRoom.participants.map((p) => {
         if (p.id === currentParticipant.id) {
-          return { ...p, score: finalScore, correctCount, wrongCount, finished: true };
+          return updatedParticipant;
         }
         return p;
       });
+
+      if (!updatedParticipants.some((p) => p.id === currentParticipant.id)) {
+        updatedParticipants.unshift(updatedParticipant);
+      }
+
+      updatedParticipants.sort((a, b) => b.score - a.score);
+      updatedParticipants.forEach((p, idx) => {
+        p.rank = idx + 1;
+      });
+
       setActiveRoom({ ...activeRoom, participants: updatedParticipants, status: 'ended' });
+
+      // Persist results to server API & Supabase
+      try {
+        await fetch('/api/results', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            studentName: currentParticipant.studentName,
+            className: currentParticipant.className,
+            gameTitle: activeRoom.game.title,
+            gameId: activeRoom.game.id,
+            roomCode: activeRoom.roomCode,
+            score: finalScore,
+            correctCount,
+            wrongCount,
+            accuracyRate,
+            totalTimeSeconds: totalTime,
+            rank: updatedParticipant.rank || 1,
+            answers,
+          }),
+        });
+
+        // Direct client-side Supabase write
+        await saveGameResultToSupabase({
+          studentName: currentParticipant.studentName,
+          className: currentParticipant.className,
+          gameTitle: activeRoom.game.title,
+          gameId: activeRoom.game.id,
+          roomCode: activeRoom.roomCode,
+          score: finalScore,
+          correctCount,
+          wrongCount,
+          accuracyRate,
+          totalTimeSeconds: totalTime,
+          rank: updatedParticipant.rank || 1,
+          answers,
+        });
+      } catch (err) {
+        console.warn('Could not save result to Supabase or server:', err);
+      }
     }
     setActiveTab('student-podium');
   };
@@ -410,9 +479,13 @@ export default function App() {
           />
         )}
 
-        {/* Teacher Detailed Results & Pedagogical AI Analysis */}
+        {/* Teacher Detailed Results & Pedagogical AI Analysis & Excel Export */}
         {activeTab === 'results' && (
-          <ResultsAnalyticsView room={activeRoom || demoRoomTIN012} />
+          <ResultsAnalyticsView 
+            room={activeRoom || demoRoomTIN012} 
+            classes={classes}
+            games={games}
+          />
         )}
 
         {/* About Author View */}

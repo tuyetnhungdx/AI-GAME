@@ -1,10 +1,15 @@
 import React from 'react';
-import { GameType } from '../../types';
+import { GameType, Question } from '../../types';
 import { RacingGame } from './RacingGame';
 import { WheelGame } from './WheelGame';
 import { BombGame } from './BombGame';
 import { PuzzleGame } from './PuzzleGame';
 import { SpaceGame } from './SpaceGame';
+import { CastleGame } from './CastleGame';
+import { TreasureGame } from './TreasureGame';
+import { ArenaGame } from './ArenaGame';
+import { MillionaireGame } from './MillionaireGame';
+import { BalloonGame } from './BalloonGame';
 
 interface GameVisualBannerProps {
   gameType: GameType;
@@ -16,7 +21,22 @@ interface GameVisualBannerProps {
   timeRemaining: number;
   maxTime: number;
   isAnswered: boolean;
-  isCorrect?: boolean;
+  isCorrect?: boolean | null;
+  currentQuestion?: Question;
+  selectedOption?: number | null;
+  correctCount?: number;
+  usedLifelines?: {
+    fiftyFifty: boolean;
+    swapQuestion: boolean;
+    audiencePoll: boolean;
+  };
+  audiencePollData?: number[] | null;
+  onApplyBonus?: (points: number, label: string, multiplier?: number) => void;
+  onSelectOption?: (idx: number) => void;
+  onUseFiftyFifty?: () => void;
+  onUseSwapQuestion?: () => void;
+  onUseAudiencePoll?: () => void;
+  onGuessSecret?: (isCorrect: boolean) => void;
 }
 
 export const GameVisualBanner: React.FC<GameVisualBannerProps> = ({
@@ -30,33 +50,45 @@ export const GameVisualBanner: React.FC<GameVisualBannerProps> = ({
   maxTime,
   isAnswered,
   isCorrect,
+  currentQuestion,
+  selectedOption,
+  correctCount = 0,
+  usedLifelines = { fiftyFifty: false, swapQuestion: false, audiencePoll: false },
+  audiencePollData = null,
+  onApplyBonus = () => {},
+  onSelectOption = () => {},
+  onUseFiftyFifty = () => {},
+  onUseSwapQuestion = () => {},
+  onUseAudiencePoll = () => {},
+  onGuessSecret = () => {},
 }) => {
   switch (gameType) {
     case 'racing':
       return (
         <RacingGame
-          currentQuestionIndex={currentQuestionIndex}
-          totalQuestions={totalQuestions}
+          currentScore={score}
+          maxPossibleScore={totalQuestions * 200}
           streak={streak}
-          score={score}
           playerName={playerName}
-          isNitroActive={streak >= 3}
+          isCorrect={isCorrect}
         />
       );
 
     case 'wheel':
       return (
         <WheelGame
+          onApplyBonus={onApplyBonus}
           streak={streak}
           score={score}
+          isQuestionAnswered={isAnswered}
         />
       );
 
     case 'bomb':
       return (
         <BombGame
-          timeRemaining={timeRemaining}
-          maxTime={maxTime}
+          remainingTime={timeRemaining}
+          totalTime={maxTime}
           isAnswered={isAnswered}
           isCorrect={isCorrect}
         />
@@ -65,9 +97,10 @@ export const GameVisualBanner: React.FC<GameVisualBannerProps> = ({
     case 'puzzle':
       return (
         <PuzzleGame
-          unlockedTiles={currentQuestionIndex}
+          unlockedTiles={correctCount}
           totalTiles={Math.max(9, totalQuestions)}
           score={score}
+          onGuessSecret={onGuessSecret}
         />
       );
 
@@ -77,92 +110,63 @@ export const GameVisualBanner: React.FC<GameVisualBannerProps> = ({
           currentQuestionIndex={currentQuestionIndex}
           totalQuestions={totalQuestions}
           score={score}
+          isCorrect={isCorrect}
         />
       );
 
     case 'castle':
       return (
-        <div className="w-full bg-[#081726] border border-amber-500/30 rounded-2xl p-4 md:p-6 mb-6 shadow-xl">
-          <div className="flex items-center justify-between mb-3 border-b border-amber-500/20 pb-2">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">🏰</span>
-              <div>
-                <h3 className="font-bold text-amber-300">VƯỢT CHƯỚNG NGẠI VẬT</h3>
-                <p className="text-xs text-slate-400">Vượt qua các ải: Cầu treo, Núi hiểm, Cổng thành</p>
-              </div>
-            </div>
-            <div className="text-xs font-mono text-amber-400 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-700">
-              Ải {currentQuestionIndex + 1}/{totalQuestions}
-            </div>
-          </div>
-          <div className="h-16 bg-slate-900/80 rounded-xl border border-slate-800 flex items-center justify-around px-4 relative overflow-hidden">
-            <span className="text-2xl">🏃‍♂️</span>
-            <span className="text-2xl">🌉</span>
-            <span className="text-2xl">⛰️</span>
-            <span className="text-2xl">🚪</span>
-            <span className="text-3xl">🏰</span>
-            <div
-              className="absolute bottom-1 h-1 bg-amber-400 rounded transition-all duration-500"
-              style={{ width: `${((currentQuestionIndex + 1) / totalQuestions) * 100}%`, left: 0 }}
-            ></div>
-          </div>
-        </div>
+        <CastleGame
+          currentQuestionIndex={currentQuestionIndex}
+          totalQuestions={totalQuestions}
+          score={score}
+          isCorrect={isCorrect}
+        />
       );
 
     case 'treasure':
       return (
-        <div className="w-full bg-[#0E1520] border border-amber-500/40 rounded-2xl p-4 md:p-6 mb-6 shadow-xl">
-          <div className="flex items-center justify-between mb-3 border-b border-amber-500/20 pb-2">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">💎</span>
-              <div>
-                <h3 className="font-bold text-amber-300">SĂN KHO BÁU TRI THỨC</h3>
-                <p className="text-xs text-slate-400">Thu thập chìa khóa vàng để mở hòm kho báu số!</p>
-              </div>
-            </div>
-            <div className="text-xs font-mono text-amber-300 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-700">
-              Chìa khóa: {currentQuestionIndex} 🗝️
-            </div>
-          </div>
-          <div className="flex items-center justify-center gap-6 py-2">
-            <div className="flex items-center gap-2 text-2xl">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <span key={i} className={i < currentQuestionIndex ? 'opacity-100 scale-110' : 'opacity-25 grayscale'}>
-                  🗝️
-                </span>
-              ))}
-            </div>
-            <span className="text-4xl animate-bounce">🎁</span>
-          </div>
-        </div>
+        <TreasureGame
+          correctCount={correctCount}
+          score={score}
+          onApplyBonus={onApplyBonus}
+        />
       );
 
     case 'arena':
       return (
-        <div className="w-full bg-[#140C20] border border-rose-500/30 rounded-2xl p-4 md:p-6 mb-6 shadow-xl">
-          <div className="flex items-center justify-between mb-3 border-b border-rose-500/20 pb-2">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">⚔️</span>
-              <div>
-                <h3 className="font-bold text-rose-300">ĐẤU TRƯỜNG KIẾN THỨC (ĐỘI ĐỎ vs ĐỘI XANH)</h3>
-                <p className="text-xs text-slate-400">Năng lượng đồng đội – Trả lời đúng để đẩy lùi đối thủ!</p>
-              </div>
-            </div>
-            <div className="text-xs font-mono text-slate-200 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-700">
-              Điểm: {score}
-            </div>
-          </div>
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs font-bold">
-              <span className="text-rose-400">ĐỘI ĐỎ (BẠN): {score + 350}</span>
-              <span className="text-cyan-400">ĐỘI XANH: 620</span>
-            </div>
-            <div className="h-4 w-full bg-slate-800 rounded-full overflow-hidden flex">
-              <div className="bg-rose-500 h-full transition-all duration-500" style={{ width: '65%' }}></div>
-              <div className="bg-cyan-500 h-full transition-all duration-500" style={{ width: '35%' }}></div>
-            </div>
-          </div>
-        </div>
+        <ArenaGame
+          score={score}
+          streak={streak}
+          playerName={playerName}
+          isCorrect={isCorrect}
+        />
+      );
+
+    case 'millionaire':
+      return (
+        <MillionaireGame
+          currentIndex={currentQuestionIndex}
+          totalQuestions={totalQuestions}
+          score={score}
+          usedLifelines={usedLifelines}
+          audiencePollData={audiencePollData}
+          onUseFiftyFifty={onUseFiftyFifty}
+          onUseSwapQuestion={onUseSwapQuestion}
+          onUseAudiencePoll={onUseAudiencePoll}
+        />
+      );
+
+    case 'balloon':
+      return (
+        <BalloonGame
+          options={currentQuestion?.options || ['A', 'B', 'C', 'D']}
+          correctAnswer={currentQuestion?.correctAnswer ?? 0}
+          isAnswered={isAnswered}
+          selectedOption={selectedOption ?? null}
+          onSelectOption={onSelectOption}
+          score={score}
+        />
       );
 
     default:
