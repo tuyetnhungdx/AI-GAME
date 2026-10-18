@@ -60,6 +60,7 @@ export const AIGeneratorView: React.FC<AIGeneratorViewProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [loadingStep, setLoadingStep] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string>('');
+  const [showApiKeyGuide, setShowApiKeyGuide] = useState<boolean>(false);
 
   // Questions Preview & Editor state
   const [activeQuestions, setActiveQuestions] = useState<Question[] | null>(null);
@@ -447,18 +448,70 @@ export const AIGeneratorView: React.FC<AIGeneratorViewProps> = ({
             </div>
 
             {errorMsg && (
-              <div className="p-3.5 bg-rose-500/15 border border-rose-500/40 rounded-xl text-rose-300 text-xs flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-rose-400" />
-                  <span>{errorMsg}</span>
+              <div className="space-y-3">
+                <div className="p-3.5 bg-rose-500/15 border border-rose-500/40 rounded-xl text-rose-300 text-xs flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0" />
+                    <span className="font-medium">{errorMsg}</span>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {errorMsg.toLowerCase().includes('api key') && (
+                      <button
+                        type="button"
+                        onClick={() => setShowApiKeyGuide(!showApiKeyGuide)}
+                        className="px-2.5 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 font-bold border border-cyan-500/40 transition-colors"
+                      >
+                        {showApiKeyGuide ? 'Đóng hướng dẫn' : 'Cách tạo khóa API'}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleGenerateAI}
+                      className="px-2.5 py-1 rounded-lg bg-rose-500 hover:bg-rose-600 text-white font-bold transition-colors"
+                    >
+                      Thử lại
+                    </button>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleGenerateAI}
-                  className="text-xs underline font-bold hover:text-white"
-                >
-                  Thử lại
-                </button>
+
+                {showApiKeyGuide && (
+                  <div className="p-4 bg-slate-900/90 border border-cyan-500/40 rounded-2xl text-xs space-y-2.5 shadow-xl">
+                    <div className="flex items-center justify-between text-cyan-300 font-bold">
+                      <span className="flex items-center gap-1.5">
+                        <Sparkles className="w-4 h-4 text-cyan-400" />
+                        HƯỚNG DẪN 3 BƯỚC TẠO KHÓA GEMINI_API_KEY (MIỄN PHÍ)
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setShowApiKeyGuide(false)}
+                        className="text-slate-400 hover:text-white"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    <ol className="list-decimal list-inside space-y-1.5 text-slate-300 leading-relaxed">
+                      <li>
+                        Truy cập trang Google AI Studio: <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-cyan-400 underline font-bold">https://aistudio.google.com/app/apikey</a> (đăng nhập bằng Gmail).
+                      </li>
+                      <li>
+                        Bấm nút màu xanh <strong className="text-white">"Create API key"</strong>, chọn dự án Google Cloud có sẵn hoặc tạo mới.
+                      </li>
+                      <li>
+                        Sao chép mã khóa được cấp (chuỗi bắt đầu bằng <code className="text-amber-300 bg-black/40 px-1 py-0.5 rounded">AIzaSy...</code>).
+                      </li>
+                      <li>
+                        Vào Vercel Dashboard <strong className="text-white">&rarr; Project Settings &rarr; Environment Variables</strong>, thêm biến:
+                        <div className="my-1.5 p-2 bg-black/50 border border-slate-700 rounded font-mono text-[11px] text-cyan-300">
+                          Tên (Key): <strong>GEMINI_API_KEY</strong><br />
+                          Giá trị (Value): <em>[Dán mã khóa AIzaSy... vừa copy]</em>
+                        </div>
+                      </li>
+                      <li>
+                        Sau khi bấm <strong className="text-white">Save</strong>, chuyển sang tab <strong className="text-white">Deployments</strong> trên Vercel, chọn dấu 3 chấm ở bản build mới nhất và bấm <strong className="text-white">Redeploy</strong> để Vercel nạp khóa.
+                      </li>
+                    </ol>
+                  </div>
+                )}
               </div>
             )}
 

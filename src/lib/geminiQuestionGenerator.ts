@@ -26,10 +26,10 @@ export interface GenerateQuestionsResult {
 export async function generateQuestionsWithGemini(
   params: GenerateQuestionsParams
 ): Promise<GenerateQuestionsResult> {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '').trim();
 
-  // 1. Kiểm tra biến môi trường GEMINI_API_KEY
-  if (!apiKey || apiKey.trim() === '') {
+  // 1. Kiểm tra biến môi trường GEMINI_API_KEY / GOOGLE_API_KEY
+  if (!apiKey) {
     console.error('[API generate-questions ERROR]: Thiếu GEMINI_API_KEY trong biến môi trường server');
     return {
       status: 500,

@@ -27,6 +27,7 @@ import { demoClasses, demoGames } from '../../data/initialData';
 import { sounds } from '../../utils/audio';
 import { ClassExcelExportPanel } from './ClassExcelExportPanel';
 import { SupabaseSetupModal } from './SupabaseSetupModal';
+import { ExportExcelButton } from './ExportExcelButton';
 
 interface ResultsAnalyticsViewProps {
   room: Room;
@@ -149,18 +150,11 @@ export const ResultsAnalyticsView: React.FC<ResultsAnalyticsViewProps> = ({
             <span>KẾT NỐI SUPABASE</span>
           </button>
 
-          <a
-            href="#excel-export-section"
-            onClick={(e) => {
-              e.preventDefault();
-              sounds.playSpinClick();
-              document.getElementById('excel-export-section')?.scrollIntoView({ behavior: 'smooth' });
-            }}
-            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs sm:text-sm shadow-lg shadow-emerald-900/30 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
-          >
-            <FileSpreadsheet className="w-4 h-4 text-amber-300" />
-            <span>XUẤT EXCEL</span>
-          </a>
+          <ExportExcelButton
+            currentRoom={room}
+            classes={classes}
+            games={games}
+          />
 
           <button
             onClick={handlePrint}
@@ -468,6 +462,40 @@ export const ResultsAnalyticsView: React.FC<ResultsAnalyticsViewProps> = ({
               ))}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* Excel Export Card Section */}
+      <div id="excel-export-section" className="bg-[#0A1424] border border-emerald-500/30 rounded-3xl p-6 sm:p-7 shadow-2xl relative overflow-hidden">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-300 shadow-inner flex-shrink-0">
+              <FileSpreadsheet className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full uppercase">
+                  BÁO CÁO KHẢO THÍ CHUẨN SƯ PHẠM (.XLSX)
+                </span>
+                <span className="text-xs text-slate-400">Đầy đủ 3 Sheet</span>
+              </div>
+              <h3 className="text-lg font-black text-white">
+                XUẤT KẾT QUẢ HỌC TẬP RA FILE EXCEL
+              </h3>
+              <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
+                Tự động đóng gói bảng điểm lớp học gồm 3 sheet: <strong className="text-emerald-300">Tổng hợp</strong> (điểm hệ 10 & thống kê), <strong className="text-cyan-300">Chi tiết từng câu</strong> (bài làm từng học sinh), và <strong className="text-purple-300">Phân tích câu hỏi</strong> (tỷ lệ đúng & độ phân hóa kiến thức).
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <ExportExcelButton
+              currentRoom={room}
+              classes={classes}
+              games={games}
+              buttonText="XUẤT EXCEL NGAY"
+            />
+          </div>
         </div>
       </div>
 

@@ -175,9 +175,9 @@ export async function generateFullClassExcel(
   const currentDate = new Date().toLocaleDateString('vi-VN');
 
   // =========================================================================
-  // SHEET 1: TONG HOP
+  // SHEET 1: TỔNG HỢP
   // =========================================================================
-  const sheet1 = workbook.addWorksheet('TONG HOP', {
+  const sheet1 = workbook.addWorksheet('Tổng hợp', {
     views: [{ state: 'frozen', ySplit: 9 }], // freeze header row
   });
 
@@ -386,9 +386,9 @@ export async function generateFullClassExcel(
   sheet1.getColumn(2).width = 24; // Họ và tên wide
 
   // =========================================================================
-  // SHEET 2: CHI TIET
+  // SHEET 2: CHI TIẾT TỪNG CÂU
   // =========================================================================
-  const sheet2 = workbook.addWorksheet('CHI TIET', {
+  const sheet2 = workbook.addWorksheet('Chi tiết từng câu', {
     views: [{ state: 'frozen', ySplit: 5 }],
   });
 
@@ -515,9 +515,9 @@ export async function generateFullClassExcel(
   sheet2.getColumn(7).width = 30; // Correct answer
 
   // =========================================================================
-  // SHEET 3: PHAN TICH
+  // SHEET 3: PHÂN TÍCH CÂU HỎI
   // =========================================================================
-  const sheet3 = workbook.addWorksheet('PHAN TICH', {
+  const sheet3 = workbook.addWorksheet('Phân tích câu hỏi', {
     views: [{ state: 'frozen', ySplit: 5 }],
   });
 
