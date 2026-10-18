@@ -1,0 +1,6 @@
+{
+  "name": "AI Game Học Tập - THPT Nguyễn Dục",
+  "description": "Nền tảng trò chơi giáo dục trực tuyến THPT tích hợp AI tạo câu hỏi, tổ chức đấu trường và phân tích kết quả học tập của Cô Trần Thị Tuyết Nhung - Trường THPT Nguyễn Dục.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
