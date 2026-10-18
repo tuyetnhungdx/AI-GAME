@@ -48,8 +48,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <span>Học mà chơi – Chơi để hiểu – AI đồng hành cùng lớp học</span>
         </div>
 
-        <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-tight sm:leading-none max-w-4xl mx-auto">
-          BIẾN BÀI HỌC THÀNH TRÒ CHƠI VỚI <span className="bg-gradient-to-r from-cyan-400 via-purple-300 to-amber-300 bg-clip-text text-transparent">TRÍ TUỆ NHÂN TẠO</span>
+        <h1 className="text-4xl sm:text-6xl md:text-7xl font-black text-white tracking-tight leading-tight sm:leading-none max-w-4xl mx-auto">
+          AI GAME <span className="bg-gradient-to-r from-cyan-400 via-purple-300 to-amber-300 bg-clip-text text-transparent">HỌC TẬP</span>
         </h1>
 
         <p className="text-sm sm:text-lg text-slate-300 mt-6 max-w-3xl mx-auto leading-relaxed">
