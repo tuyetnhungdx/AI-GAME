@@ -27,7 +27,45 @@ export default function App() {
   const [games, setGames] = useState<Game[]>(
   () => loadGames(demoGames)
 );
-  const [classes] = useState<ClassGroup[]>(demoClasses);
+  const [classes, setClasses] = useState<ClassGroup[]>(() => {
+  try {
+    const raw = localStorage.getItem('ai-game:classes:v1');
+    if (!raw) return demoClasses;
+
+    const saved = JSON.parse(raw);
+
+    if (
+      Array.isArray(saved) &&
+      saved.every(c =>
+        c &&
+        typeof c.id === 'string' &&
+        typeof c.name === 'string' &&
+        typeof c.schoolYear === 'string' &&
+        typeof c.studentCount === 'number' &&
+        Array.isArray(c.students)
+      )
+    ) {
+      return saved;
+    }
+
+    return demoClasses;
+  } catch {
+    return demoClasses;
+  }
+});
+
+const handleClassesChange = (next: ClassGroup[]): boolean => {
+  try {
+    localStorage.setItem('ai-game:classes:v1', JSON.stringify(next));
+    setClasses(next);
+    return true;
+  } catch {
+    window.alert(
+      'Không lưu được danh sách lớp. Bộ nhớ trình duyệt đã đầy hoặc bị chặn.'
+    );
+    return false;
+  }
+};
 
   // Active room state
   const [activeRoom, setActiveRoom] = useState<Room>(demoRoomTIN012);
@@ -436,6 +474,7 @@ const hostRoom: Room = {
         {/* Teacher Dashboard */}
         {(activeTab === 'teacher-dashboard' || activeTab === 'library') && (
           <TeacherDashboard
+            onClassesChange={handleClassesChange}
             teacher={teacher}
             games={games}
             classes={classes}
