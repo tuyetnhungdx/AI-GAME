@@ -126,7 +126,9 @@ YÊU CẦU BẮT BUỘC:
    - "topic": Chủ đề kiến thức hoặc tên bài học.
    - Nếu môn là "Tin học" hoặc bài có code, hãy tạo đoạn code thực tế trong "codeSnippet" và ngôn ngữ trong "codeLanguage" (ví dụ python, sql, html, cpp).
 4. ĐỊNH DẠNG: Chỉ trả về JSON thuần, TUYỆT ĐỐI KHÔNG chứa markdown.`;
-
+- Các phương án phải độc lập, không tham chiếu vị trí A/B/C/D.
+- Không dùng "Tất cả các phương án trên", "Cả A và B" hoặc tương tự.
+- Phần giải thích nêu nội dung đáp án đúng, không ghi nhãn "đáp án A/B/C/D", vì hệ thống sẽ đảo vị trí phương án.
     const response = await ai.models.generateContent({
       model: 'gemini-3.8-flash',
       contents: prompt,
@@ -211,8 +213,24 @@ YÊU CẦU BẮT BUỘC:
         opts = ['Phương án A', 'Phương án B', 'Phương án C', 'Phương án D'];
       }
 
-      let correct = typeof item.correctAnswer === 'number' ? item.correctAnswer : 0;
-      if (correct < 0 || correct > 3) correct = 0;
+      const rawCorrect = item.correctAnswer;
+
+const correct =
+  typeof rawCorrect === 'number'
+    ? rawCorrect
+    : typeof rawCorrect === 'string'
+      ? /^[ABCD]$/i.test(rawCorrect.trim())
+        ? 'ABCD'.indexOf(rawCorrect.trim().toUpperCase())
+        : /^[0-3]$/.test(rawCorrect.trim())
+          ? Number(rawCorrect.trim())
+          : NaN
+      : NaN;
+
+if (!Number.isInteger(correct) || correct < 0 || correct > 3) {
+  throw new Error(
+    `AI trả đáp án không hợp lệ ở câu ${i + 1}. Vui lòng tạo lại bộ câu hỏi.`
+  );
+}
 
       validatedQuestions.push({
         id: `ai-q-${Date.now()}-${i + 1}`,
@@ -233,11 +251,48 @@ YÊU CẦU BẮT BUỘC:
       return;
     }
 
-    res.status(200).json({
-      success: true,
-      questions: validatedQuestions,
-      count: validatedQuestions.length,
-    });
+   // Trộn ngẫu nhiên một danh sách.
+function shuffle<T>(values: T[]): T[] {
+  const result = [...values];
+
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+
+  return result;
+}
+
+// Phân bổ số đáp án A/B/C/D chênh nhau tối đa 1 câu.
+const labels = shuffle([0, 1, 2, 3]);
+
+const targetPositions = shuffle(
+  validatedQuestions.map((_, index) => labels[index % 4])
+);
+
+const balancedQuestions = validatedQuestions.map((question, index) => {
+  const options = [...question.options];
+  const oldPosition = question.correctAnswer;
+  const newPosition = targetPositions[index];
+
+  // Chuyển nội dung đáp án đúng tới vị trí mới.
+  [options[oldPosition], options[newPosition]] = [
+    options[newPosition],
+    options[oldPosition],
+  ];
+
+  return {
+    ...question,
+    options,
+    correctAnswer: newPosition,
+  };
+});
+
+res.status(200).json({
+  success: true,
+  questions: balancedQuestions,
+  count: balancedQuestions.length,
+});
   } catch (error: any) {
     console.error('[Vercel API generate-questions ERROR]:', error);
 
