@@ -1,3 +1,4 @@
+import { ClassManager } from './ClassManager';
 import React, { useState } from 'react';
 import { 
   BarChart3, 
@@ -38,6 +39,7 @@ import { ClassExcelExportPanel } from './ClassExcelExportPanel';
 import { SupabaseSetupModal } from './SupabaseSetupModal';
 
 interface TeacherDashboardProps {
+  onClassesChange: (classes: ClassGroup[]) => boolean;
   teacher: TeacherProfile;
   games: Game[];
   classes: ClassGroup[];
@@ -49,6 +51,7 @@ interface TeacherDashboardProps {
 }
 
 export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
+  onClassesChange,
   teacher,
   games,
   classes,
@@ -484,6 +487,12 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           )}
 
           {/* TAB 6 & 7: LỚP HỌC & HỌC SINH */}
+          {sidebarTab === 'classes' && (
+  <ClassManager
+    classes={classes}
+    onChange={onClassesChange}
+  />
+)}
           {(sidebarTab === 'classes' || sidebarTab === 'students') && (
             <div className="bg-[#07111E] border border-slate-800 rounded-3xl p-6 shadow-xl space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
