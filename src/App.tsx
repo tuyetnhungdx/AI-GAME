@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { loadGames, saveGames } from './lib/gameStorage';import React, { useEffect, useState } from 'react';
 import { AboutView } from './components/AboutView';
 import { Footer } from './components/Footer';
 import { LandingPage } from './components/LandingPage';
@@ -24,7 +24,9 @@ import { saveGameResultToSupabase } from './lib/supabase';
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>('home');
   const [teacher] = useState<TeacherProfile>(initialTeacher);
-  const [games, setGames] = useState<Game[]>(demoGames);
+  const [games, setGames] = useState<Game[]>(
+  () => loadGames(demoGames)
+);
   const [classes] = useState<ClassGroup[]>(demoClasses);
 
   // Active room state
@@ -109,7 +111,21 @@ export default function App() {
 
   // Action: Teacher creates and publishes a game
   const handlePublishGame = async (newGame: Game) => {
-    setGames((prev) => [newGame, ...prev]);
+  const updatedGames = [
+    newGame,
+    ...games.filter(game => game.id !== newGame.id),
+  ];
+
+  try {
+    saveGames(updatedGames);
+  } catch {
+    window.alert(
+      'Chưa lưu được trò chơi. Bộ nhớ trình duyệt đã đầy hoặc bị chặn. Hãy giữ trang này và kiểm tra quyền lưu trữ rồi thử lại.'
+    );
+    return;
+  }
+
+  setGames(updatedGames);
 
     try {
       const res = await fetch('/api/rooms', {
