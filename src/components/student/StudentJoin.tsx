@@ -1,3 +1,4 @@
+import type { ClassGroup } from '../../types';
 import React, { useState } from 'react';
 import { ArrowRight, Bot, Gamepad2, School, Sparkles, User, Zap } from 'lucide-react';
 import { sounds } from '../../utils/audio';
