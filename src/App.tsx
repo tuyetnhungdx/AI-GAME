@@ -502,6 +502,7 @@ const hostRoom: Room = {
         {/* Student Join Form */}
         {activeTab === 'student-join' && (
           <StudentJoin
+            classes={classes}
             onJoinRoom={handleJoinRoom}
             initialRoomCode={
   new URLSearchParams(window.location.search).get('room') || ''
