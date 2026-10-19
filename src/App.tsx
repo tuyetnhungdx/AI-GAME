@@ -216,12 +216,13 @@ return;
       // Local fallback
     }
 
-    const hostRoom: Room = {
-      window.alert(
+   window.alert(
   'Chưa mở được phòng online. Hãy kiểm tra API và cấu hình Supabase trên Vercel.'
 );
 return;
-      id: `room-${Date.now()}`,
+
+const hostRoom: Room = {
+  id: `room-${Date.now()}`,
       gameId: game.id,
       roomCode: game.id === demoGames[0].id ? 'TIN012' : Math.floor(100000 + Math.random() * 900000).toString(),
       status: 'waiting',
