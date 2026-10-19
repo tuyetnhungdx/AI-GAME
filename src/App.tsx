@@ -147,6 +147,10 @@ export default function App() {
     }
 
     // Local room creation fallback
+    window.alert(
+  'Chưa tạo được phòng online. Hãy kiểm tra API và cấu hình Supabase trên Vercel.'
+);
+return;
     const localRoom: Room = {
       id: `room-${Date.now()}`,
       gameId: newGame.id,
@@ -213,6 +217,10 @@ export default function App() {
     }
 
     const hostRoom: Room = {
+      window.alert(
+  'Chưa mở được phòng online. Hãy kiểm tra API và cấu hình Supabase trên Vercel.'
+);
+return;
       id: `room-${Date.now()}`,
       gameId: game.id,
       roomCode: game.id === demoGames[0].id ? 'TIN012' : Math.floor(100000 + Math.random() * 900000).toString(),
