@@ -125,10 +125,10 @@ YÊU CẦU BẮT BUỘC:
    - "difficulty": Thuộc một trong 4 mức: "Nhận biết", "Thông hiểu", "Vận dụng", "Vận dụng cao".
    - "topic": Chủ đề kiến thức hoặc tên bài học.
    - Nếu môn là "Tin học" hoặc bài có code, hãy tạo đoạn code thực tế trong "codeSnippet" và ngôn ngữ trong "codeLanguage" (ví dụ python, sql, html, cpp).
-4. ĐỊNH DẠNG: Chỉ trả về JSON thuần, TUYỆT ĐỐI KHÔNG chứa markdown.`;
-- Các phương án phải độc lập, không tham chiếu vị trí A/B/C/D.
-- Không dùng "Tất cả các phương án trên", "Cả A và B" hoặc tương tự.
-- Phần giải thích nêu nội dung đáp án đúng, không ghi nhãn "đáp án A/B/C/D", vì hệ thống sẽ đảo vị trí phương án.
+4. ĐỊNH DẠNG: Chỉ trả về JSON thuần, TUYỆT ĐỐI KHÔNG chứa markdown.
+5. Các phương án phải độc lập, không tham chiếu vị trí A/B/C/D.
+6. Không dùng "Tất cả các phương án trên", "Cả A và B" hoặc tương tự.
+7. Phần giải thích nêu nội dung đáp án đúng, không ghi nhãn "đáp án A/B/C/D", vì hệ thống sẽ đảo vị trí phương án.`;
     const response = await ai.models.generateContent({
       model: 'gemini-3.8-flash',
       contents: prompt,
