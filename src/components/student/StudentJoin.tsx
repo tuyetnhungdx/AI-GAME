@@ -4,14 +4,19 @@ import { ArrowRight, Bot, Gamepad2, School, Sparkles, User, Zap } from 'lucide-r
 import { sounds } from '../../utils/audio';
 
 interface StudentJoinProps {
+  classes: ClassGroup[];
   onJoinRoom: (roomCode: string, studentName: string, className: string) => Promise<boolean>;
   initialRoomCode?: string;
 }
 
-export const StudentJoin: React.FC<StudentJoinProps> = ({ onJoinRoom, initialRoomCode = '' }) => {
+export const StudentJoin: React.FC<StudentJoinProps> = ({
+  onJoinRoom,
+  initialRoomCode = '',
+  classes,
+}) => {
   const [roomCode, setRoomCode] = useState(initialRoomCode || '');
   const [studentName, setStudentName] = useState('');
-  const [className, setClassName] = useState('12A1');
+  const [className, setClassName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -27,7 +32,10 @@ export const StudentJoin: React.FC<StudentJoinProps> = ({ onJoinRoom, initialRoo
       setErrorMessage('Vui lòng nhập họ và tên của em');
       return;
     }
-
+if (!className.trim()) {
+  setErrorMessage('Vui lòng chọn hoặc nhập tên lớp.');
+  return;
+}
     setIsLoading(true);
     sounds.playSpinClick();
 
@@ -123,12 +131,22 @@ export const StudentJoin: React.FC<StudentJoinProps> = ({ onJoinRoom, initialRoo
               onChange={(e) => setClassName(e.target.value)}
               className="w-full bg-[#060D17] border border-slate-700 focus:border-cyan-400 text-white px-4 py-3 rounded-xl outline-none text-sm cursor-pointer"
             >
-              <option value="12A1">12A1 (THPT Nguyễn Dục)</option>
-              <option value="12A2">12A2 (THPT Nguyễn Dục)</option>
-              <option value="11A1">11A1 (THPT Nguyễn Dục)</option>
-              <option value="10A1">10A1 (THPT Nguyễn Dục)</option>
-              <option value="Tự do">Học sinh Tự do / Khác</option>
+              <option value="">Chọn lớp học</option>
+
+{Array.from(new Set(classes.map(c => c.name))).map(name => (
+  <option key={name} value={name}>
+    {name}
+  </option>
+))}
             </select>
+  <input
+  type="text"
+  aria-label="Nhập tên lớp"
+  placeholder="Chưa thấy lớp? Nhập tên lớp tại đây"
+  value={className}
+  onChange={e => setClassName(e.target.value.toUpperCase())}
+  className="w-full mt-2 rounded-xl bg-slate-800 border border-slate-600 p-3 text-white"
+/>
           </div>
 
           {/* Error Message */}
