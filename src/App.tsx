@@ -53,13 +53,7 @@ export default function App() {
   } catch {
     return demoClasses;
   }
-});
-       // Bước 2: đọc lại dữ liệu lớp chung từ Supabase
-     
-      if (!getRes.ok) {
-        console.error('Không đọc được lớp từ Supabase');
-        return;
-      }
+});   
 const handleClassesChange = (next: ClassGroup[]): boolean => {
   try {
     localStorage.setItem('ai-game:classes:v1', JSON.stringify(next));
