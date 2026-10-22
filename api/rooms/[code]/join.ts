@@ -61,7 +61,63 @@ export default async function handler(req: any, res: any) {
 
     const roomId = `shared-${code}`;
 
-    const participant = {
+    const participant = {const participant = {
+  id: randomUUID(),
+  studentId: savedStudent?.id || null,
+  roomId,
+  studentName,
+  className,
+      // Tìm lớp học tương ứng
+const { data: targetClass, error: classError } = await db
+  .from('ai_classes')
+  .select('id, name')
+  .ilike('name', className)
+  .limit(1)
+  .maybeSingle();
+
+if (classError) throw classError;
+
+let savedStudent: any = null;
+
+if (targetClass) {
+  // Kiểm tra HS đã có trong lớp chưa
+  const { data: existingStudent, error: studentFindError } =
+    await db
+      .from('ai_students')
+      .select('*')
+      .eq('class_id', targetClass.id)
+      .ilike('full_name', studentName)
+      .limit(1)
+      .maybeSingle();
+
+  if (studentFindError) throw studentFindError;
+
+  if (existingStudent) {
+    savedStudent = existingStudent;
+  } else {
+    const studentId = randomUUID();
+
+    const { data: newStudent, error: studentInsertError } =
+      await db
+        .from('ai_students')
+        .insert({
+          id: studentId,
+          class_id: targetClass.id,
+          full_name: studentName,
+          student_code: `HS-${studentId
+            .slice(0, 8)
+            .toUpperCase()}`,
+          completed_games: 0,
+          avg_score: 0,
+        })
+        .select()
+        .single();
+
+    if (studentInsertError) throw studentInsertError;
+
+    savedStudent = newStudent;
+  }
+}
       id: randomUUID(),
       roomId,
       studentName,
