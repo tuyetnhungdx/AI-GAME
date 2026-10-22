@@ -520,6 +520,17 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                         </h4>
                         <span className="text-xs font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-800/50 px-2 py-0.5 rounded-full">
                          {cls.students?.length ?? cls.studentCount ?? 0} học sinh
+                          <button
+  type="button"
+  onClick={() =>
+    setExpandedClassId(
+      expandedClassId === cls.id ? null : cls.id
+    )
+  }
+  className="mt-2 text-xs font-bold text-cyan-400 hover:text-cyan-300"
+>
+  {expandedClassId === cls.id ? 'ẨN HỌC SINH' : 'XEM HỌC SINH'}
+</button>
                         </span>
                       </div>
                       <div className="text-xs text-slate-400 space-y-1 mb-3">
