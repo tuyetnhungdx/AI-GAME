@@ -103,12 +103,56 @@ const handleClassesChange = (next: ClassGroup[]): boolean => {
       if (res.ok) {
         const data = await res.json();
         if (data.success && data.room) {
-          setActiveRoom(data.room);
-          setCurrentParticipant(data.participant);
-          setActiveTab('student-lobby');
-          sounds.playSpinClick();
-          return true;
-        }
+  setActiveRoom(data.room);
+  setCurrentParticipant(data.participant);
+
+  // Tự động thêm học sinh vào danh sách lớp
+  setClasses(prevClasses =>
+    prevClasses.map(cls => {
+      const isTargetClass =
+        cls.name.trim().toUpperCase() ===
+        className.trim().toUpperCase();
+
+      if (!isTargetClass) {
+        return cls;
+      }
+
+      // Không thêm trùng học sinh cùng tên trong cùng một lớp
+      const studentExists = cls.students.some(
+        student =>
+          student.fullName.trim().toLowerCase() ===
+          studentName.trim().toLowerCase()
+      );
+
+      if (studentExists) {
+        return cls;
+      }
+
+      const newStudent = {
+        id: data.participant.id,
+        fullName: studentName.trim(),
+        studentCode: `HS-${data.participant.id.slice(0, 8)}`,
+        completedGames: 0,
+        avgScore: 0,
+      };
+
+      const updatedStudents = [
+        ...cls.students,
+        newStudent
+      ];
+
+      return {
+        ...cls,
+        students: updatedStudents,
+        studentCount: updatedStudents.length,
+      };
+    })
+  );
+
+  setActiveTab('student-lobby');
+  sounds.playSpinClick();
+  return true;
+}
       }
     } catch {
       // Local fallback
