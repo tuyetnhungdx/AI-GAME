@@ -56,6 +56,47 @@ export default function App() {
 });   
 const handleClassesChange = (next: ClassGroup[]): boolean => {
   try {
+    // Lưu dự phòng trên máy giáo viên
+    localStorage.setItem(
+      'ai-game:classes:v1',
+      JSON.stringify(next)
+    );
+
+    setClasses(next);
+
+    // Đồng bộ toàn bộ danh sách lớp lên Supabase
+    void fetch('/api/classes', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        classes: next,
+      }),
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          console.error(
+            'Không đồng bộ được lớp lên Supabase:',
+            await res.text()
+          );
+        }
+      })
+      .catch((error) => {
+        console.error(
+          'Lỗi đồng bộ lớp lên Supabase:',
+          error
+        );
+      });
+
+    return true;
+  } catch (error) {
+    console.error('Không lưu được danh sách lớp:', error);
+    window.alert('Không lưu được danh sách lớp.');
+    return false;
+  }
+};
+  try {
     localStorage.setItem('ai-game:classes:v1', JSON.stringify(next));
     setClasses(next);
     return true;
