@@ -52,7 +52,47 @@ export default function App() {
   } catch {
     return demoClasses;
   }
-});
+});useEffect(() => {
+  const syncClassesWithServer = async () => {
+    try {
+      // Đẩy các lớp đang có trên máy GV lên Supabase
+      await fetch('/api/classes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ classes }),
+      });
+
+      // Sau đó đọc dữ liệu chuẩn từ Supabase
+      const res = await fetch('/api/classes');
+
+      if (!res.ok) return;
+
+      const data = await res.json();
+
+      if (
+        data.success &&
+        Array.isArray(data.classes) &&
+        data.classes.length > 0
+      ) {
+        setClasses(data.classes);
+
+        localStorage.setItem(
+          'ai-game:classes:v1',
+          JSON.stringify(data.classes)
+        );
+      }
+    } catch (error) {
+      console.error(
+        'Không đồng bộ được lớp với Supabase:',
+        error
+      );
+    }
+  };
+
+  syncClassesWithServer();
+}, []);
 
 const handleClassesChange = (next: ClassGroup[]): boolean => {
   try {
@@ -105,17 +145,6 @@ const handleClassesChange = (next: ClassGroup[]): boolean => {
         if (data.success && data.room) {
   setActiveRoom(data.room);
   setCurrentParticipant(data.participant);
-
-  // Tự động thêm học sinh vào danh sách lớp
-  setClasses(prevClasses =>
-    prevClasses.map(cls => {
-      const isTargetClass =
-        cls.name.trim().toUpperCase() ===
-        className.trim().toUpperCase();
-
-      if (!isTargetClass) {
-        return cls;
-      }
 
       // Không thêm trùng học sinh cùng tên trong cùng một lớp
       const studentExists = cls.students.some(
@@ -219,10 +248,13 @@ const handleClassesChange = (next: ClassGroup[]): boolean => {
       if (res.ok) {
         const data = await res.json();
         if (data.success && data.room) {
-          setActiveRoom(data.room);
-          setActiveTab('teacher-host');
-          return;
-        }
+  setActiveRoom(data.room);
+  setCurrentParticipant(data.participant);
+
+  setActiveTab('student-lobby');
+  sounds.playSpinClick();
+  return true;
+}
       }
     } catch {
       // ignore
