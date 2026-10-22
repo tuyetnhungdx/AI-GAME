@@ -53,24 +53,8 @@ export default function App() {
   } catch {
     return demoClasses;
   }
-});useEffect(() => {useEffect(() => {
-  const syncClassesWithSupabase = async () => {
-    try {
-      // Bước 1: đưa các lớp hiện có trên máy giáo viên lên Supabase
-      const postRes = await fetch('/api/classes', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ classes }),
-      });
-
-      if (!postRes.ok) {
-        console.error('Không đồng bộ được lớp lên Supabase');
-        return;
-      }
-
-      // Bước 2: đọc lại dữ liệu lớp chung từ Supabase
+});
+       // Bước 2: đọc lại dữ liệu lớp chung từ Supabase
       const getRes = await fetch('/api/classes');
 
       if (!getRes.ok) {
@@ -109,33 +93,6 @@ export default function App() {
 
       // Sau đó đọc dữ liệu chuẩn từ Supabase
       const res = await fetch('/api/classes');
-
-      if (!res.ok) return;
-
-      const data = await res.json();
-
-      if (
-        data.success &&
-        Array.isArray(data.classes) &&
-        data.classes.length > 0
-      ) {
-        setClasses(data.classes);
-
-        localStorage.setItem(
-          'ai-game:classes:v1',
-          JSON.stringify(data.classes)
-        );
-      }
-    } catch (error) {
-      console.error(
-        'Không đồng bộ được lớp với Supabase:',
-        error
-      );
-    }
-  };
-
-  syncClassesWithServer();
-}, []);
 
 const handleClassesChange = (next: ClassGroup[]): boolean => {
   try {
