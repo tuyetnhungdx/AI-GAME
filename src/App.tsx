@@ -460,6 +460,7 @@ const hostRoom: Room = {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            studentId: currentParticipant.studentId,
             studentName: currentParticipant.studentName,
             className: currentParticipant.className,
             gameTitle: activeRoom.game.title,
