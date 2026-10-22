@@ -1,0 +1,142 @@
+import { createClient } from '@supabase/supabase-js';
+
+export default async function handler(req: any, res: any) {
+  res.setHeader('Cache-Control', 'no-store');
+
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !key) {
+    return res.status(500).json({
+      success: false,
+      error: 'Chưa cấu hình Supabase trên Vercel',
+    });
+  }
+
+  const db = createClient(url, key, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+
+  try {
+    // LẤY DANH SÁCH LỚP + HỌC SINH
+    if (req.method === 'GET') {
+      const { data: classes, error: classError } = await db
+        .from('ai_classes')
+        .select('id, name, school_year')
+        .order('name');
+
+      if (classError) throw classError;
+
+      const { data: students, error: studentError } = await db
+        .from('ai_students')
+        .select(
+          'id, class_id, full_name, student_code, completed_games, avg_score'
+        );
+
+      if (studentError) throw studentError;
+
+      const result = (classes || []).map((cls: any) => {
+        const classStudents = (students || [])
+          .filter((s: any) => s.class_id === cls.id)
+          .map((s: any) => ({
+            id: s.id,
+            fullName: s.full_name,
+            studentCode: s.student_code,
+            completedGames: s.completed_games,
+            avgScore: Number(s.avg_score || 0),
+          }));
+
+        return {
+          id: cls.id,
+          name: cls.name,
+          schoolYear: cls.school_year,
+          studentCount: classStudents.length,
+          students: classStudents,
+        };
+      });
+
+      return res.status(200).json({
+        success: true,
+        classes: result,
+      });
+    }
+
+    // ĐỒNG BỘ CÁC LỚP ĐANG CÓ TRÊN MÁY GV LÊN SUPABASE
+    if (req.method === 'POST') {
+      const body =
+        typeof req.body === 'string'
+          ? JSON.parse(req.body)
+          : req.body;
+
+      const classes = Array.isArray(body?.classes)
+        ? body.classes
+        : [];
+
+      for (const cls of classes) {
+        if (!cls?.id || !cls?.name) continue;
+
+        const { error: classError } = await db
+          .from('ai_classes')
+          .upsert(
+            {
+              id: cls.id,
+              name: cls.name,
+              school_year: cls.schoolYear || '',
+            },
+            {
+              onConflict: 'id',
+            }
+          );
+
+        if (classError) throw classError;
+
+        if (Array.isArray(cls.students)) {
+          for (const student of cls.students) {
+            if (!student?.id || !student?.fullName) continue;
+
+            const { error: studentError } = await db
+              .from('ai_students')
+              .upsert(
+                {
+                  id: student.id,
+                  class_id: cls.id,
+                  full_name: student.fullName,
+                  student_code:
+                    student.studentCode ||
+                    `HS-${student.id.slice(0, 8)}`,
+                  completed_games:
+                    student.completedGames || 0,
+                  avg_score:
+                    student.avgScore || 0,
+                },
+                {
+                  onConflict: 'id',
+                }
+              );
+
+            if (studentError) throw studentError;
+          }
+        }
+      }
+
+      return res.status(200).json({
+        success: true,
+      });
+    }
+
+    return res.status(405).json({
+      success: false,
+      error: 'Method not allowed',
+    });
+  } catch (error: any) {
+    console.error('Classes API failed:', error);
+
+    return res.status(500).json({
+      success: false,
+      error: error?.message || 'Không xử lý được dữ liệu lớp',
+    });
+  }
+}
