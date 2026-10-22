@@ -120,34 +120,31 @@ if (!className.trim()) {
             />
           </div>
 
-          {/* Class selection */}
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5 flex items-center gap-1.5">
-              <School className="w-3.5 h-3.5 text-cyan-400" />
-              <span>LỚP HỌC</span>
-            </label>
-            <select
-              value={className}
-              onChange={(e) => setClassName(e.target.value)}
-              className="w-full bg-[#060D17] border border-slate-700 focus:border-cyan-400 text-white px-4 py-3 rounded-xl outline-none text-sm cursor-pointer"
-            >
-              <option value="">Chọn lớp học</option>
+         {/* Class selection */}
+<div>
+  <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5 flex items-center gap-1.5">
+    <School className="w-3.5 h-3.5 text-cyan-400" />
+    <span>LỚP HỌC</span>
+  </label>
 
-{Array.from(new Set(classes.map(c => c.name))).map(name => (
-  <option key={name} value={name}>
-    {name}
-  </option>
-))}
-            </select>
-  <input
-  type="text"
-  aria-label="Nhập tên lớp"
-  placeholder="Chưa thấy lớp? Nhập tên lớp tại đây"
-  value={className}
-  onChange={e => setClassName(e.target.value.toUpperCase())}
-  className="w-full mt-2 rounded-xl bg-slate-800 border border-slate-600 p-3 text-white"
-/>
-          </div>
+  <select
+    value={className}
+    onChange={(e) => setClassName(e.target.value)}
+    className="w-full bg-[#060D17] border border-slate-700 focus:border-cyan-400 text-white px-4 py-3 rounded-xl outline-none"
+    required
+  >
+    <option value="">Chọn lớp học - năm học 2026-2027</option>
+
+    {classes
+      .filter((cls) => cls.schoolYear === '2026-2027')
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((cls) => (
+        <option key={cls.id} value={cls.name}>
+          {cls.name} - {cls.schoolYear}
+        </option>
+      ))}
+  </select>
+</div>
 
           {/* Error Message */}
           {errorMessage && (
