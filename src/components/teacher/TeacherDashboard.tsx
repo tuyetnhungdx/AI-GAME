@@ -518,7 +518,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                           Lớp {cls.name}
                         </h4>
                         <span className="text-xs font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-800/50 px-2 py-0.5 rounded-full">
-                          {cls.studentCount} học sinh
+                         {cls.students?.length ?? cls.studentCount ?? 0} học sinh
                         </span>
                       </div>
                       <div className="text-xs text-slate-400 space-y-1 mb-3">
