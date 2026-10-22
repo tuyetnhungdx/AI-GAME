@@ -60,14 +60,7 @@ export default async function handler(req: any, res: any) {
     }
 
     const roomId = `shared-${code}`;
-
-    const participant = {const participant = {
-  id: randomUUID(),
-  studentId: savedStudent?.id || null,
-  roomId,
-  studentName,
-  className,
-      // Tìm lớp học tương ứng
+// Tìm lớp học tương ứng
 const { data: targetClass, error: classError } = await db
   .from('ai_classes')
   .select('id, name')
@@ -77,62 +70,64 @@ const { data: targetClass, error: classError } = await db
 
 if (classError) throw classError;
 
-let savedStudent: any = null;
-
-if (targetClass) {
-  // Kiểm tra HS đã có trong lớp chưa
-  const { data: existingStudent, error: studentFindError } =
-    await db
-      .from('ai_students')
-      .select('*')
-      .eq('class_id', targetClass.id)
-      .ilike('full_name', studentName)
-      .limit(1)
-      .maybeSingle();
-
-  if (studentFindError) throw studentFindError;
-
-  if (existingStudent) {
-    savedStudent = existingStudent;
-  } else {
-    const studentId = randomUUID();
-
-    const { data: newStudent, error: studentInsertError } =
-      await db
-        .from('ai_students')
-        .insert({
-          id: studentId,
-          class_id: targetClass.id,
-          full_name: studentName,
-          student_code: `HS-${studentId
-            .slice(0, 8)
-            .toUpperCase()}`,
-          completed_games: 0,
-          avg_score: 0,
-        })
-        .select()
-        .single();
-
-    if (studentInsertError) throw studentInsertError;
-
-    savedStudent = newStudent;
-  }
+if (!targetClass) {
+  return res.status(400).json({
+    success: false,
+    error: `Không tìm thấy lớp ${className}`,
+  });
 }
-      id: randomUUID(),
-      roomId,
-      studentName,
-      className,
-      score: 0,
-      streak: 0,
-      maxStreak: 0,
-      correctCount: 0,
-      wrongCount: 0,
-      totalTimeSeconds: 0,
-      joinedAt: new Date().toISOString(),
-      answers: [],
-      finished: false,
-    };
 
+// Kiểm tra học sinh đã tồn tại trong lớp chưa
+const { data: existingStudent, error: findStudentError } = await db
+  .from('ai_students')
+  .select('*')
+  .eq('class_id', targetClass.id)
+  .ilike('full_name', studentName)
+  .limit(1)
+  .maybeSingle();
+
+if (findStudentError) throw findStudentError;
+
+let savedStudent = existingStudent;
+
+if (!savedStudent) {
+  const studentId = randomUUID();
+
+  const { data: newStudent, error: insertStudentError } = await db
+    .from('ai_students')
+    .insert({
+      id: studentId,
+      class_id: targetClass.id,
+      full_name: studentName,
+      student_code: `HS-${studentId.slice(0, 8).toUpperCase()}`,
+      completed_games: 0,
+      avg_score: 0,
+    })
+    .select()
+    .single();
+
+  if (insertStudentError) throw insertStudentError;
+
+  savedStudent = newStudent;
+}
+
+// Tạo participant của phòng chơi
+const participant = {
+  id: randomUUID(),
+  studentId: savedStudent.id,
+  roomId,
+  studentName,
+  className,
+  score: 0,
+  streak: 0,
+  maxStreak: 0,
+  correctCount: 0,
+  wrongCount: 0,
+  totalTimeSeconds: 0,
+  joinedAt: new Date().toISOString(),
+  answers: [],
+  finished: false,
+};
     return res.status(200).json({
       success: true,
       participant,
