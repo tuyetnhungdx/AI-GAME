@@ -61,6 +61,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   onNavigateToCreate,
   onViewResults,
 }) => {
+  const [expandedClassId, setExpandedClassId] = useState<string | null>(null);
   const [sidebarTab, setSidebarTab] = useState<string>('overview');
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
