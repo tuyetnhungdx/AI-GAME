@@ -61,39 +61,6 @@ export default function App() {
         console.error('Không đọc được lớp từ Supabase');
         return;
       }
-
-      const data = await getRes.json();
-
-      if (data.success && Array.isArray(data.classes)) {
-        setClasses(data.classes);
-
-        // Giữ localStorage làm bản dự phòng
-        localStorage.setItem(
-          'ai-game:classes:v1',
-          JSON.stringify(data.classes)
-        );
-      }
-    } catch (error) {
-      console.error('Lỗi đồng bộ lớp với Supabase:', error);
-    }
-  };
-
-  syncClassesWithSupabase();
-}, []);
-  const syncClassesWithServer = async () => {
-    try {
-      // Đẩy các lớp đang có trên máy GV lên Supabase
-      await fetch('/api/classes', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ classes }),
-      });
-
-      // Sau đó đọc dữ liệu chuẩn từ Supabase
-      const res = await fetch('/api/classes');
-
 const handleClassesChange = (next: ClassGroup[]): boolean => {
   try {
     localStorage.setItem('ai-game:classes:v1', JSON.stringify(next));
