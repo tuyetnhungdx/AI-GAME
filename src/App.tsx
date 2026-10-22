@@ -473,6 +473,7 @@ const hostRoom: Room = {
                 totalTimeSeconds: totalTime,
                 rank: updatedParticipant.rank || 1,
               }),
+        });
 
         // Direct client-side Supabase write
         await saveGameResultToSupabase({
