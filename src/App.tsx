@@ -96,18 +96,6 @@ const handleClassesChange = (next: ClassGroup[]): boolean => {
     return false;
   }
 };
-  try {
-    localStorage.setItem('ai-game:classes:v1', JSON.stringify(next));
-    setClasses(next);
-    return true;
-  } catch {
-    window.alert(
-      'Không lưu được danh sách lớp. Bộ nhớ trình duyệt đã đầy hoặc bị chặn.'
-    );
-    return false;
-  }
-};
-
   // Active room state
   const [activeRoom, setActiveRoom] = useState<Room>(demoRoomTIN012);
   const [currentParticipant, setCurrentParticipant] = useState<Participant | null>(null);
