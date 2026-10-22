@@ -474,17 +474,43 @@ const hostRoom: Room = {
   const handleQuickJoinDemo = () => {
     handleJoinRoom('TIN012', 'Nguyễn Văn An', '12A1');
   };
+const refreshClassesFromServer = async () => {
+  try {
+    const res = await fetch('/api/classes');
 
+    if (!res.ok) {
+      console.error('Không đọc được dữ liệu lớp từ Supabase');
+      return;
+    }
+
+    const data = await res.json();
+
+    if (data.success && Array.isArray(data.classes)) {
+      setClasses(data.classes);
+
+      localStorage.setItem(
+        'ai-game:classes:v1',
+        JSON.stringify(data.classes)
+      );
+    }
+  } catch (error) {
+    console.error('Lỗi tải danh sách lớp từ Supabase:', error);
+  }
+};
   return (
     <div className="min-h-screen bg-[#08111F] text-slate-100 flex flex-col selection:bg-cyan-500 selection:text-slate-950">
       {/* Universal Navigation */}
       <Navbar
-        activeTab={activeTab}
         setActiveTab={(tab) => {
-          sounds.playSpinClick();
-          setActiveTab(tab);
-        }}
-        onJoinDemoRoom={handleQuickJoinDemo}
+  sounds.playSpinClick();
+
+  if (tab === 'teacher-dashboard' || tab === 'library') {
+    void refreshClassesFromServer();
+  }
+
+  setActiveTab(tab);
+}}
+       onJoinDemoRoom={handleQuickJoinDemo}
       />
 
       {/* Main Content Router */}
