@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { loadGames, saveGames } from './lib/gameStorage';
 import { AboutView } from './components/AboutView';
 import { Footer } from './components/Footer';
