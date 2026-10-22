@@ -188,38 +188,6 @@ const handleClassesChange = (next: ClassGroup[]): boolean => {
   setActiveRoom(data.room);
   setCurrentParticipant(data.participant);
 
-      // Không thêm trùng học sinh cùng tên trong cùng một lớp
-      const studentExists = cls.students.some(
-        student =>
-          student.fullName.trim().toLowerCase() ===
-          studentName.trim().toLowerCase()
-      );
-
-      if (studentExists) {
-        return cls;
-      }
-
-      const newStudent = {
-        id: data.participant.id,
-        fullName: studentName.trim(),
-        studentCode: `HS-${data.participant.id.slice(0, 8)}`,
-        completedGames: 0,
-        avgScore: 0,
-      };
-
-      const updatedStudents = [
-        ...cls.students,
-        newStudent
-      ];
-
-      return {
-        ...cls,
-        students: updatedStudents,
-        studentCount: updatedStudents.length,
-      };
-    })
-  );
-
   setActiveTab('student-lobby');
   sounds.playSpinClick();
   return true;
