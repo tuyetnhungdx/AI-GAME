@@ -108,13 +108,40 @@ const handleClassesChange = (next: ClassGroup[]): boolean => {
   }>({ score: 840, correctCount: 8, wrongCount: 2 });
 
   // Check URL query parameters for ?room=CODE
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const roomParam = urlParams.get('room');
-    if (roomParam) {
-      setActiveTab('student-join');
+ useEffect(() => {
+  const loadClassesFromServer = async () => {
+    try {
+      const res = await fetch('/api/classes');
+
+      if (!res.ok) {
+        console.error('Không tải được danh sách lớp');
+        return;
+      }
+
+      const data = await res.json();
+
+      if (data.success && Array.isArray(data.classes)) {
+        setClasses(data.classes);
+
+        localStorage.setItem(
+          'ai-game:classes:v1',
+          JSON.stringify(data.classes)
+        );
+      }
+    } catch (error) {
+      console.error('Lỗi tải lớp từ Supabase:', error);
     }
-  }, []);
+  };
+
+  void loadClassesFromServer();
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const roomParam = urlParams.get('room');
+
+  if (roomParam) {
+    setActiveTab('student-join');
+  }
+}, []);
 
   // Action: Join room from Student Join form
   const handleJoinRoom = async (
