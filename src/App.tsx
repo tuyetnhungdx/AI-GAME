@@ -52,7 +52,49 @@ export default function App() {
   } catch {
     return demoClasses;
   }
-});useEffect(() => {
+});useEffect(() => {useEffect(() => {
+  const syncClassesWithSupabase = async () => {
+    try {
+      // Bước 1: đưa các lớp hiện có trên máy giáo viên lên Supabase
+      const postRes = await fetch('/api/classes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ classes }),
+      });
+
+      if (!postRes.ok) {
+        console.error('Không đồng bộ được lớp lên Supabase');
+        return;
+      }
+
+      // Bước 2: đọc lại dữ liệu lớp chung từ Supabase
+      const getRes = await fetch('/api/classes');
+
+      if (!getRes.ok) {
+        console.error('Không đọc được lớp từ Supabase');
+        return;
+      }
+
+      const data = await getRes.json();
+
+      if (data.success && Array.isArray(data.classes)) {
+        setClasses(data.classes);
+
+        // Giữ localStorage làm bản dự phòng
+        localStorage.setItem(
+          'ai-game:classes:v1',
+          JSON.stringify(data.classes)
+        );
+      }
+    } catch (error) {
+      console.error('Lỗi đồng bộ lớp với Supabase:', error);
+    }
+  };
+
+  syncClassesWithSupabase();
+}, []);
   const syncClassesWithServer = async () => {
     try {
       // Đẩy các lớp đang có trên máy GV lên Supabase
