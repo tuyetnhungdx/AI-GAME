@@ -55,8 +55,7 @@ export default function App() {
   }
 });
        // Bước 2: đọc lại dữ liệu lớp chung từ Supabase
-      const getRes = await fetch('/api/classes');
-
+     
       if (!getRes.ok) {
         console.error('Không đọc được lớp từ Supabase');
         return;
