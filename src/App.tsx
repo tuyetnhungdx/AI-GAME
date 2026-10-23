@@ -28,6 +28,31 @@ export default function App() {
   const [games, setGames] = useState<Game[]>(
   () => loadGames(demoGames)
 );
+  useEffect(() => {
+  const loadPlayCounts = async () => {
+    try {
+      const response = await fetch('/api/results');
+
+      if (!response.ok) {
+        throw new Error('Không lấy được số lượt chơi');
+      }
+
+      const data = await response.json();
+      const counts = data?.counts || {};
+
+      setGames(prevGames =>
+        prevGames.map(game => ({
+          ...game,
+          playCount: counts[game.id] || 0,
+        }))
+      );
+    } catch (error) {
+      console.error('Lỗi tải số lượt chơi:', error);
+    }
+  };
+
+  loadPlayCounts();
+}, []);
   const [classes, setClasses] = useState<ClassGroup[]>(() => {
   try {
     const raw = localStorage.getItem('ai-game:classes:v1');
