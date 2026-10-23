@@ -128,6 +128,25 @@ const participant = {
   answers: [],
   finished: false,
 };
+    // Lưu học sinh đang tham gia phòng vào Supabase
+const { data: savedParticipant, error: participantError } = await db
+  .from('room_participants')
+  .insert({
+    room_code: code,
+    student_name: studentName,
+    class_name: className,
+    student_code: savedStudent.student_code || null,
+    joined_at: new Date().toISOString(),
+  })
+  .select()
+  .single();
+
+if (participantError) {
+  console.error('Lỗi lưu học sinh vào phòng:', participantError);
+  throw participantError;
+}
+
+console.log('Đã lưu học sinh vào phòng:', savedParticipant);
     return res.status(200).json({
       success: true,
       participant,
