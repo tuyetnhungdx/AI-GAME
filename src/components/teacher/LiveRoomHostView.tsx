@@ -1,4 +1,33 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+const [connectedParticipants, setConnectedParticipants] = useState<any[]>(
+  room.participants || []
+);
+
+useEffect(() => {
+  const loadParticipants = async () => {
+    try {
+      const response = await fetch(
+        `/api/rooms/${room.roomCode}/participants`
+      );
+
+      if (!response.ok) return;
+
+      const data = await response.json();
+
+      if (data.success) {
+        setConnectedParticipants(data.participants || []);
+      }
+    } catch (error) {
+      console.error('Lỗi tải học sinh trong phòng:', error);
+    }
+  };
+
+  loadParticipants();
+
+  const timer = setInterval(loadParticipants, 2000);
+
+  return () => clearInterval(timer);
+}, [room.roomCode]);
 import { 
   ArrowRight, 
   Check, 
@@ -134,7 +163,7 @@ export const LiveRoomHostView: React.FC<LiveRoomHostViewProps> = ({
           <div className="flex items-center gap-2">
             <Users className="w-5 h-5 text-cyan-400" />
             <h3 className="font-bold text-base text-white">
-              Danh sách học sinh đã kết nối ({room.participants.length})
+              Danh sách học sinh đã kết nối ({connectedParticipants.length})
             </h3>
           </div>
           <span className="text-xs text-slate-400">
@@ -142,13 +171,13 @@ export const LiveRoomHostView: React.FC<LiveRoomHostViewProps> = ({
           </span>
         </div>
 
-        {room.participants.length === 0 ? (
+       {connectedParticipants.length === 0 ? (
           <div className="py-12 text-center text-slate-500 text-xs">
             Chưa có học sinh nào vào phòng. Hãy chia sẻ mã <strong>{room.roomCode}</strong> lên máy chiếu!
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-            {room.participants.map((p, idx) => (
+           {connectedParticipants.map((p, idx) => (
               <div
                 key={p.id || idx}
                 className="flex items-center justify-between p-3 rounded-xl bg-slate-900/60 border border-slate-800"
