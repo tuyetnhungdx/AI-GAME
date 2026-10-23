@@ -3,12 +3,12 @@ import { createClient } from '@supabase/supabase-js';
 export default async function handler(req: any, res: any) {
   res.setHeader('Cache-Control', 'no-store');
 
-  if (req.method !== 'POST') {
-    return res.status(405).json({
-      success: false,
-      error: 'Chỉ hỗ trợ POST',
-    });
-  }
+  if (req.method !== 'POST' && req.method !== 'GET') {
+  return res.status(405).json({
+    success: false,
+    error: 'Chỉ hỗ trợ GET hoặc POST',
+  });
+}
 
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -26,6 +26,36 @@ export default async function handler(req: any, res: any) {
       autoRefreshToken: false,
     },
   });
+  // GET: lấy số lượt chơi thật của từng game
+if (req.method === 'GET') {
+  try {
+    const { data, error } = await db
+      .from('results')
+      .select('game_id');
+
+    if (error) throw error;
+
+    const counts: Record<string, number> = {};
+
+    for (const row of data || []) {
+      if (!row.game_id) continue;
+
+      counts[row.game_id] = (counts[row.game_id] || 0) + 1;
+    }
+
+    return res.status(200).json({
+      success: true,
+      counts,
+    });
+  } catch (error: any) {
+    console.error('Load play counts failed:', error);
+
+    return res.status(500).json({
+      success: false,
+      error: error?.message || 'Không lấy được số lượt chơi',
+    });
+  }
+}
 
   try {
     const body =
