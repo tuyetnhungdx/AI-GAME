@@ -1,33 +1,4 @@
 import React, { useEffect, useState } from 'react';
-const [connectedParticipants, setConnectedParticipants] = useState<any[]>(
-  room.participants || []
-);
-
-useEffect(() => {
-  const loadParticipants = async () => {
-    try {
-      const response = await fetch(
-        `/api/rooms/${room.roomCode}/participants`
-      );
-
-      if (!response.ok) return;
-
-      const data = await response.json();
-
-      if (data.success) {
-        setConnectedParticipants(data.participants || []);
-      }
-    } catch (error) {
-      console.error('Lỗi tải học sinh trong phòng:', error);
-    }
-  };
-
-  loadParticipants();
-
-  const timer = setInterval(loadParticipants, 2000);
-
-  return () => clearInterval(timer);
-}, [room.roomCode]);
 import { 
   ArrowRight, 
   Check, 
@@ -59,6 +30,35 @@ export const LiveRoomHostView: React.FC<LiveRoomHostViewProps> = ({
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
+  const [connectedParticipants, setConnectedParticipants] = useState<any[]>(
+  room.participants || []
+);
+
+useEffect(() => {
+  const loadParticipants = async () => {
+    try {
+      const response = await fetch(
+        `/api/rooms/${room.roomCode}/participants`
+      );
+
+      if (!response.ok) return;
+
+      const data = await response.json();
+
+      if (data.success) {
+        setConnectedParticipants(data.participants || []);
+      }
+    } catch (error) {
+      console.error('Lỗi tải học sinh trong phòng:', error);
+    }
+  };
+
+  loadParticipants();
+
+  const timer = setInterval(loadParticipants, 2000);
+
+  return () => clearInterval(timer);
+}, [room.roomCode]);
 
   const roomUrl = `${window.location.origin}?room=${room.roomCode}`;
 
