@@ -24,6 +24,7 @@ import {
   Save, 
   Search, 
   Sparkles, 
+  Pencil,
   Trash2, 
   Upload, 
   Wand2, 
@@ -926,7 +927,29 @@ s.connect(('192.168.1.1', 80))"
                       >
                         <Copy className="w-3.5 h-3.5" />
                       </button>
+<button
+  type="button"
+  onClick={() => {
+    const newQuestion = window.prompt(
+      'Sửa nội dung câu hỏi:',
+      q.question
+    );
 
+    if (newQuestion !== null && newQuestion.trim() !== '') {
+      setQuestionsList(prev =>
+        prev.map((item, i) =>
+          i === idx
+            ? { ...item, question: newQuestion.trim() }
+            : item
+        )
+      );
+    }
+  }}
+  className="p-1.5 rounded-lg bg-blue-950/60 hover:bg-blue-900 text-blue-400 border border-blue-500/30"
+  title="Sửa câu hỏi"
+>
+  <Pencil className="w-3.5 h-3.5" />
+</button>
                       <button
                         type="button"
                         onClick={() => handleDeleteQuestion(idx)}
