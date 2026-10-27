@@ -239,6 +239,7 @@ const handleClassesChange = (next: ClassGroup[]): boolean => {
 
   try {
     saveGames(updatedGames);
+    saveGames(updatedGames);
   } catch {
     window.alert(
       'Chưa lưu được trò chơi. Bộ nhớ trình duyệt đã đầy hoặc bị chặn. Hãy giữ trang này và kiểm tra quyền lưu trữ rồi thử lại.'
