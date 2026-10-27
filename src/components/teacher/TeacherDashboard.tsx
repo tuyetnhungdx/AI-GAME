@@ -42,6 +42,7 @@ interface TeacherDashboardProps {
   onClassesChange: (classes: ClassGroup[]) => boolean;
   teacher: TeacherProfile;
   games: Game[];
+  onUpdateGame: (game: Game) => void;
   classes: ClassGroup[];
   activeRoom: Room | null;
   onSelectGameToHost: (game: Game) => void;
@@ -54,6 +55,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   onClassesChange,
   teacher,
   games,
+  onUpdateGame,
   classes,
   activeRoom,
   onSelectGameToHost,
@@ -64,6 +66,31 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   const [expandedClassId, setExpandedClassId] = useState<string | null>(null);
   const [sidebarTab, setSidebarTab] = useState<string>('overview');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [editingGame, setEditingGame] = useState<Game | null>(null);
+  const updateEditingQuestion = (
+  qIndex: number,
+  updater: (question: any) => any
+) => {
+  setEditingGame(prev => {
+    if (!prev) return prev;
+
+    return {
+      ...prev,
+      questions: prev.questions.map((q, index) =>
+        index === qIndex ? updater(q) : q
+      ),
+    };
+  });
+};
+
+const handleSaveEditedGame = async () => {
+  if (!editingGame) return;
+
+  await onUpdateGame(editingGame);
+  setEditingGame(null);
+
+  window.alert('Đã lưu thay đổi trò chơi!');
+};
 
   // Homework assign modal state
   const [assigningGame, setAssigningGame] = useState<Game | null>(null);
@@ -634,7 +661,206 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           )}
         </div>
       </div>
+{/* Edit Game Modal */}
+{editingGame && (
+  <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="bg-[#0B1728] border-2 border-amber-500/50 rounded-3xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
 
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h3 className="font-bold text-lg text-white">
+            ✏️ SỬA TRÒ CHƠI
+          </h3>
+          <p className="text-xs text-slate-400">
+            Chỉnh sửa nội dung rồi bấm LƯU THAY ĐỔI
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setEditingGame(null)}
+          className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300"
+        >
+          Đóng
+        </button>
+      </div>
+
+      <div className="space-y-4 mb-6">
+        <div>
+          <label className="block text-xs text-slate-300 font-bold mb-1">
+            TÊN TRÒ CHƠI
+          </label>
+
+          <input
+            value={editingGame.title || ''}
+            onChange={(e) =>
+              setEditingGame({
+                ...editingGame,
+                title: e.target.value,
+              })
+            }
+            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs text-slate-300 font-bold mb-1">
+            MÔ TẢ
+          </label>
+
+          <textarea
+            value={editingGame.description || ''}
+            onChange={(e) =>
+              setEditingGame({
+                ...editingGame,
+                description: e.target.value,
+              })
+            }
+            rows={2}
+            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-5">
+        {editingGame.questions.map((q, qIdx) => (
+          <div
+            key={q.id || qIdx}
+            className="border border-slate-700 rounded-2xl p-4 bg-slate-900/60"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <span className="font-bold text-cyan-300">
+                Câu {qIdx + 1}
+              </span>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setEditingGame(prev =>
+                    prev
+                      ? {
+                          ...prev,
+                          questions: prev.questions.filter(
+                            (_, index) => index !== qIdx
+                          ),
+                        }
+                      : prev
+                  )
+                }
+                className="px-2 py-1 rounded-lg bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-500/30 text-xs"
+              >
+                Xóa câu
+              </button>
+            </div>
+
+            <textarea
+              value={q.question || ''}
+              onChange={(e) =>
+                updateEditingQuestion(qIdx, old => ({
+                  ...old,
+                  question: e.target.value,
+                }))
+              }
+              rows={2}
+              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white mb-3"
+            />
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {q.options.map((option, oIdx) => (
+                <div
+                  key={oIdx}
+                  className="flex items-center gap-2"
+                >
+                  <span className="w-7 h-7 rounded-lg bg-slate-800 text-cyan-300 font-bold flex items-center justify-center">
+                    {String.fromCharCode(65 + oIdx)}
+                  </span>
+
+                  <input
+                    value={option}
+                    onChange={(e) =>
+                      updateEditingQuestion(qIdx, old => ({
+                        ...old,
+                        options: old.options.map(
+                          (item: string, index: number) =>
+                            index === oIdx
+                              ? e.target.value
+                              : item
+                        ),
+                      }))
+                    }
+                    className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white"
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-3">
+              <label className="block text-xs text-slate-300 font-bold mb-1">
+                ĐÁP ÁN ĐÚNG
+              </label>
+
+              <select
+                value={q.correctAnswer}
+                onChange={(e) =>
+                  updateEditingQuestion(qIdx, old => ({
+                    ...old,
+                    correctAnswer: Number(e.target.value),
+                  }))
+                }
+                className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white"
+              >
+                <option value={0}>A</option>
+                <option value={1}>B</option>
+                <option value={2}>C</option>
+                <option value={3}>D</option>
+              </select>
+            </div>
+
+            <div className="mt-3">
+              <label className="block text-xs text-slate-300 font-bold mb-1">
+                GIẢI THÍCH
+              </label>
+
+              <textarea
+                value={q.explanation || ''}
+                onChange={(e) =>
+                  updateEditingQuestion(qIdx, old => ({
+                    ...old,
+                    explanation: e.target.value,
+                  }))
+                }
+                rows={2}
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white"
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-800">
+        <button
+          type="button"
+          onClick={() => setEditingGame(null)}
+          className="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold"
+        >
+          HỦY
+        </button>
+
+        <button
+          type="button"
+          onClick={handleSaveEditedGame}
+          className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
+        >
+          LƯU THAY ĐỔI
+        </button>
+      </div>
+
+    </div>
+  </div>
+)}
+
+{/* Homework Assign Modal */}
+{assigningGame && (
       {/* Homework Assign Modal */}
       {assigningGame && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
