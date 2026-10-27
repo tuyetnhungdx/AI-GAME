@@ -22,6 +22,7 @@ import {
   Share2, 
   Sparkles, 
   Trash2, 
+  Edit3,
   TrendingUp, 
   Trophy, 
   Users 
@@ -445,7 +446,15 @@ const handleSaveEditedGame = async () => {
                           <Play className="w-3.5 h-3.5 fill-cyan-300" />
                           <span>CHƠI LỚP</span>
                         </button>
-
+<button
+  type="button"
+  onClick={() => setEditingGame(g)}
+  className="py-2 px-3 rounded-xl bg-amber-950/60 hover:bg-amber-900 text-amber-300 font-medium border border-amber-500/30 flex items-center justify-center gap-1"
+  title="Sửa trò chơi"
+>
+  <Edit3 className="w-3.5 h-3.5" />
+  SỬA
+</button>
                         <button
                           onClick={() => setAssigningGame(g)}
                           className="py-2 px-3 rounded-xl bg-purple-950/60 hover:bg-purple-900 text-purple-300 font-semibold text-xs border border-purple-500/30 transition-all"
