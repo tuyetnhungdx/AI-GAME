@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { loadGames, saveGames } from './lib/gameStorage';
-import { AboutView } from './components/AboutView';
+import { AboutView } from
+  './components/AboutView';
 import { Footer } from './components/Footer';
 import { LandingPage } from './components/LandingPage';
 import { Navbar } from './components/Navbar';
@@ -589,6 +590,7 @@ const refreshClassesFromServer = async () => {
             teacher={teacher}
             games={games}
             classes={classes}
+            onUpdateGame={handlePublishGame}
             activeRoom={activeRoom}
             onSelectGameToHost={handleSelectGameToHost}
             onNavigateToCreateAI={() => setActiveTab('teacher-create')}
