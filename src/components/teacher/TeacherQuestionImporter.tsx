@@ -935,15 +935,57 @@ s.connect(('192.168.1.1', 80))"
       q.question
     );
 
-    if (newQuestion !== null && newQuestion.trim() !== '') {
-      setQuestionsList(prev =>
-        prev.map((item, i) =>
-          i === idx
-            ? { ...item, question: newQuestion.trim() }
-            : item
-        )
-      );
-    }
+    if (newQuestion === null) return;
+
+    const newA = window.prompt(
+      'Sửa đáp án A:',
+      q.options?.[0] || ''
+    );
+    if (newA === null) return;
+
+    const newB = window.prompt(
+      'Sửa đáp án B:',
+      q.options?.[1] || ''
+    );
+    if (newB === null) return;
+
+    const newC = window.prompt(
+      'Sửa đáp án C:',
+      q.options?.[2] || ''
+    );
+    if (newC === null) return;
+
+    const newD = window.prompt(
+      'Sửa đáp án D:',
+      q.options?.[3] || ''
+    );
+    if (newD === null) return;
+
+    const newExplanation = window.prompt(
+      'Sửa phần giải thích:',
+      q.explanation || ''
+    );
+
+    setQuestionsList(prev =>
+      prev.map((item, i) =>
+        i === idx
+          ? {
+              ...item,
+              question: newQuestion.trim(),
+              options: [
+                newA.trim(),
+                newB.trim(),
+                newC.trim(),
+                newD.trim()
+              ],
+              explanation:
+                newExplanation !== null
+                  ? newExplanation.trim()
+                  : item.explanation
+            }
+          : item
+      )
+    );
   }}
   className="p-1.5 rounded-lg bg-blue-950/60 hover:bg-blue-900 text-blue-400 border border-blue-500/30"
   title="Sửa câu hỏi"
