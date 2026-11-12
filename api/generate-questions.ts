@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'http';
-import { GoogleGenAI, Type } from '@google/genai';
+import { GoogleGenAI, Type, type GenerateContentConfig } from '@google/genai';
 
 interface VercelRequest extends IncomingMessage {
   body?: any;
@@ -24,6 +24,33 @@ export interface QuestionItem {
   topic?: string;
   codeSnippet?: string;
   codeLanguage?: string;
+}
+
+const questionModels = ['gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.5-flash-lite'];
+
+function isGeminiUnavailable(error: unknown) {
+  if (!(error instanceof Error)) return false;
+  const status = 'status' in error ? Number(error.status) : undefined;
+  return status === 503 || status === 504 ||
+    error.name === 'AbortError' || error.name === 'TimeoutError' ||
+    /\bUNAVAILABLE\b|high demand|deadline exceeded/i.test(error.message);
+}
+
+async function generateWithFallback(ai: GoogleGenAI, prompt: string, config: GenerateContentConfig) {
+  for (const [index, model] of questionModels.entries()) {
+    try {
+      return await ai.models.generateContent({
+        model,
+        contents: prompt,
+        config: { ...config, abortSignal: AbortSignal.timeout(17000) },
+      });
+    } catch (error) {
+      if (!isGeminiUnavailable(error) || index === questionModels.length - 1) throw error;
+      console.warn('[generate-questions] Gemini unavailable, switching model:', model);
+      await new Promise(resolve => setTimeout(resolve, 350 * (index + 1)));
+    }
+  }
+  throw new Error('No Gemini models configured');
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -100,6 +127,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const ai = new GoogleGenAI({
       apiKey,
       httpOptions: {
+        retryOptions: { attempts: 1 },
         headers: {
           'User-Agent': 'aistudio-build-edtech',
         },
@@ -129,46 +157,39 @@ YÊU CẦU BẮT BUỘC:
 5. Các phương án phải độc lập, không tham chiếu vị trí A/B/C/D.
 6. Không dùng "Tất cả các phương án trên", "Cả A và B" hoặc tương tự.
 7. Phần giải thích nêu nội dung đáp án đúng, không ghi nhãn "đáp án A/B/C/D", vì hệ thống sẽ đảo vị trí phương án.`;
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
-      contents: prompt,
-      config: {
-        systemInstruction:
-          'Bạn là chuyên gia khảo thí và sư phạm giáo dục phổ thông Việt Nam. Hãy trả về JSON thuần chuẩn xác theo schema, không bọc markdown.',
-        thinkingConfig: {
-          thinkingBudget: 0, // Tối ưu tốc độ phản hồi nhanh trong 2-4 giây
-        },
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.ARRAY,
-          description: `Danh sách ${questionCount} câu hỏi trắc nghiệm khách quan`,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              question: { type: Type.STRING, description: 'Nội dung câu hỏi' },
-              options: {
-                type: Type.ARRAY,
-                items: { type: Type.STRING },
-                description: 'Mảng đúng 4 lựa chọn A, B, C, D',
-              },
-              correctAnswer: {
-                type: Type.INTEGER,
-                description: 'Chỉ số phương án đúng từ 0 đến 3',
-              },
-              explanation: {
-                type: Type.STRING,
-                description: 'Giải thích ngắn gọn vì sao đáp án đúng',
-              },
-              difficulty: {
-                type: Type.STRING,
-                description: 'Mức độ: Nhận biết, Thông hiểu, Vận dụng, hoặc Vận dụng cao',
-              },
-              topic: { type: Type.STRING, description: 'Chủ đề kiến thức' },
-              codeSnippet: { type: Type.STRING, description: 'Đoạn mã code thực tế nếu có' },
-              codeLanguage: { type: Type.STRING, description: 'Ngôn ngữ: python, sql, html, cpp' },
+    const response = await generateWithFallback(ai, prompt, {
+      systemInstruction:
+        'Bạn là chuyên gia khảo thí và sư phạm giáo dục phổ thông Việt Nam. Hãy trả về JSON thuần chuẩn xác theo schema, không bọc markdown.',
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: Type.ARRAY,
+        description: `Danh sách ${questionCount} câu hỏi trắc nghiệm khách quan`,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            question: { type: Type.STRING, description: 'Nội dung câu hỏi' },
+            options: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING },
+              description: 'Mảng đúng 4 lựa chọn A, B, C, D',
             },
-            required: ['question', 'options', 'correctAnswer', 'explanation', 'difficulty'],
+            correctAnswer: {
+              type: Type.INTEGER,
+              description: 'Chỉ số phương án đúng từ 0 đến 3',
+            },
+            explanation: {
+              type: Type.STRING,
+              description: 'Giải thích ngắn gọn vì sao đáp án đúng',
+            },
+            difficulty: {
+              type: Type.STRING,
+              description: 'Mức độ: Nhận biết, Thông hiểu, Vận dụng, hoặc Vận dụng cao',
+            },
+            topic: { type: Type.STRING, description: 'Chủ đề kiến thức' },
+            codeSnippet: { type: Type.STRING, description: 'Đoạn mã code thực tế nếu có' },
+            codeLanguage: { type: Type.STRING, description: 'Ngôn ngữ: python, sql, html, cpp' },
           },
+          required: ['question', 'options', 'correctAnswer', 'explanation', 'difficulty'],
         },
       },
     });
@@ -294,6 +315,14 @@ res.status(200).json({
   count: balancedQuestions.length,
 });
   } catch (error: any) {
+    if (isGeminiUnavailable(error)) {
+      res.status(503).json({
+        success: false,
+        error: 'Gemini đang quá tải hoặc phản hồi chậm. Ứng dụng đã thử các mô hình dự phòng. Cô có thể thử lại hoặc chọn “Nạp bộ câu hỏi chuẩn SGK ngay”.',
+      });
+      return;
+    }
+
     console.error('[Vercel API generate-questions ERROR]:', error);
 
     const errorMessage = error?.message || String(error);
