@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { loadGames, saveGames } from './lib/gameStorage';
 import { AboutView } from
   './components/AboutView';
+import { GeminiGamesView } from './components/GeminiGamesView';
 import { Footer } from './components/Footer';
 import { LandingPage } from './components/LandingPage';
 import { Navbar } from './components/Navbar';
@@ -555,6 +556,7 @@ const refreshClassesFromServer = async () => {
     <div className="min-h-screen bg-[#08111F] text-slate-100 flex flex-col selection:bg-cyan-500 selection:text-slate-950">
       {/* Universal Navigation */}
       <Navbar
+        activeTab={activeTab}
         setActiveTab={(tab) => {
   sounds.playSpinClick();
 
@@ -583,6 +585,8 @@ const refreshClassesFromServer = async () => {
         {activeTab === 'teacher-create' && (
           <AIGeneratorView onPublishGame={handlePublishGame} />
         )}
+
+        {activeTab === 'gemini-games' && <GeminiGamesView />}
 
         {/* Teacher Dashboard */}
         {(activeTab === 'teacher-dashboard' || activeTab === 'library') && (

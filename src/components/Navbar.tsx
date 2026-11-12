@@ -3,7 +3,8 @@ import {
   Bot, 
   Gamepad2, 
   Home, 
-  Layers, 
+  Layers,
+  Link2,
   Menu, 
   PlusCircle, 
   School, 
@@ -40,6 +41,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'home', label: 'Trang chủ', icon: Home },
     { id: 'teacher-create', label: 'Tạo trò chơi (AI)', icon: Sparkles, badge: 'AI' },
     { id: 'library', label: 'Kho trò chơi', icon: Layers },
+    { id: 'gemini-games', label: 'Game Gemini', icon: Link2 },
     { id: 'student-join', label: 'Học sinh tham gia', icon: Gamepad2, highlight: true },
     { id: 'teacher-dashboard', label: 'Dashboard Giáo viên', icon: School },
     { id: 'about', label: 'Giới thiệu', icon: UserCheck },
@@ -73,7 +75,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           {/* Desktop Nav Items */}
-          <nav className="hidden lg:flex items-center gap-1">
+          <nav className="hidden xl:flex items-center gap-1">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -125,7 +127,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Mobile menu button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+              className="xl:hidden p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
@@ -135,7 +137,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="lg:hidden border-b border-cyan-500/20 bg-[#08111F]/95 backdrop-blur-xl px-4 pt-2 pb-4 space-y-1">
+        <div className="xl:hidden border-b border-cyan-500/20 bg-[#08111F]/95 backdrop-blur-xl px-4 pt-2 pb-4 space-y-1">
           <div className="p-2 mb-2 bg-slate-900/80 rounded-xl border border-slate-800 text-xs text-slate-300 flex items-center justify-between">
             <span>Giáo viên phụ trách: <strong>Cô Tuyết Nhung</strong></span>
             <span className="text-cyan-400 font-semibold">THPT Nguyễn Dục</span>
