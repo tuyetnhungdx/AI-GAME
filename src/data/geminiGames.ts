@@ -1,4 +1,4 @@
-interface GeminiGame {
+export interface GeminiGame {
   title: string;
   grade: '10' | '11' | '12';
   lesson: string;
