@@ -773,22 +773,18 @@ export async function generateAllGamesClassExcel(
     let totalScore = 0;
     let completedCount = 0;
 
-    games.forEach((g, gIdx) => {
+    games.forEach((g) => {
       const gResult = studentGames[g.id];
       if (gResult && gResult.participated) {
         rowValues.push(Number(gResult.score10.toFixed(1)));
         totalScore += gResult.score10;
         completedCount++;
       } else {
-        // Fallback realistic simulation if needed
-        const simulatedScore = Math.max(5.5, Math.min(10, Math.round(((st.avgScore / 100) + ((idx + gIdx) % 3) * 0.4) * 10) / 10));
-        rowValues.push(simulatedScore);
-        totalScore += simulatedScore;
-        completedCount++;
+        rowValues.push('—');
       }
     });
 
-    const avgScore = completedCount > 0 ? Math.round((totalScore / completedCount) * 10) / 10 : 0;
+    const avgScore = completedCount > 0 ? Math.round((totalScore / completedCount) * 10) / 10 : null;
     const completionPercent = games.length > 0 ? Math.round((completedCount / games.length) * 100) : 0;
 
     rowValues.push(avgScore, `${completedCount}/${games.length}`, `${completionPercent}%`);
@@ -830,7 +826,7 @@ export function buildClassExportSummary(
 
   participants.forEach((p) => {
     // Check if participant belongs to this class (or classGroup is 'all' / matching class name)
-    if (classGroup.name && p.className && p.className.toLowerCase() !== classGroup.name.toLowerCase()) {
+    if (classGroup.name && p.className && p.className.trim().toLowerCase() !== classGroup.name.trim().toLowerCase()) {
       return;
     }
 
@@ -841,13 +837,19 @@ export function buildClassExportSummary(
     participantMap.get(key)!.push(p);
   });
 
+  const uniqueNames = new Map<string, number>();
+  for (const student of classGroup.students) {
+    const name = student.fullName.trim().toLowerCase();
+    uniqueNames.set(name, (uniqueNames.get(name) ?? 0) + 1);
+  }
+
   const studentsList: ClassStudentRow[] = classGroup.students.map((st, idx) => {
     const key = st.fullName.trim().toLowerCase();
     const codeKey = (st.studentCode || '').trim().toLowerCase();
     const idKey = (st.id || '').trim().toLowerCase();
 
     // Look for matching participant attempts
-    const attempts = participantMap.get(idKey) || participantMap.get(codeKey) || participantMap.get(key) || [];
+    const attempts = participantMap.get(idKey) || participantMap.get(codeKey) || (uniqueNames.get(key) === 1 ? participantMap.get(key) : undefined) || [];
 
     if (attempts.length === 0) {
       return {
@@ -909,9 +911,9 @@ export function buildClassExportSummary(
       correctCount: chosenAttempt.correctCount,
       wrongCount: chosenAttempt.wrongCount,
       accuracyPercent: accuracy,
-      totalTimeSeconds: chosenAttempt.totalTimeSeconds || 42,
+      totalTimeSeconds: chosenAttempt.totalTimeSeconds ?? null,
       rank: 0, // Will be computed below
-      completedAt: chosenAttempt.joinedAt || new Date().toISOString(),
+      completedAt: chosenAttempt.completedAt || chosenAttempt.joinedAt || null,
       status: 'Hoàn thành',
       attemptCount: attempts.length,
       answers: chosenAttempt.answers || [],

@@ -28,7 +28,7 @@ import {
   Users 
 } from 'lucide-react';
 import { ClassGroup, Game, Question, Room, TeacherProfile } from '../../types';
-import { demoRoomTIN012 } from '../../data/initialData';
+import { loadSavedGameResults } from '../../lib/savedGameResults';
 import { sounds } from '../../utils/audio';
 import { 
   buildClassExportSummary, 
@@ -107,21 +107,24 @@ const handleSaveEditedGame = async () => {
     setIsQuickExporting(true);
     sounds.playSpinClick();
     try {
-      const targetClass = classes.find((c) => c.name === '12A1') || classes[0];
-      const targetGame = games[0];
-      const targetRoom = activeRoom || demoRoomTIN012;
-      const summary = buildClassExportSummary(
-        targetClass,
-        targetGame,
-        targetRoom.roomCode,
-        targetRoom.participants
-      );
+      const targetGame = activeRoom?.game || games[0];
+      if (!targetGame) return;
+      const code = activeRoom?.roomCode;
+      const participants = await loadSavedGameResults(targetGame.id, code);
+      const recentClass = participants.at(-1)?.className;
+      const targetClass = classes.find(c => c.name === recentClass);
+      if (!targetClass) {
+        window.alert('Chưa tìm thấy kết quả đã lưu khớp với lớp. Hãy dùng Tùy chọn lọc để chọn lớp và trò chơi.');
+        return;
+      }
+      const summary = buildClassExportSummary(targetClass, targetGame, code || 'Tất cả phiên', participants);
       const workbook = await generateFullClassExcel(summary, targetGame.questions);
       const filename = generateExportFilename(targetClass.name, targetGame.title);
       await downloadWorkbook(workbook, filename);
       sounds.playFanfare();
     } catch (e) {
       console.error(e);
+      window.alert('Không đọc được kết quả để xuất Excel. Vui lòng thử lại.');
     } finally {
       setIsQuickExporting(false);
     }
@@ -130,13 +133,11 @@ const handleSaveEditedGame = async () => {
   const handleExportClassDirect = async (cls: ClassGroup, specificGame?: Game) => {
     sounds.playSpinClick();
     try {
-      const targetGame = specificGame || games[0];
-      const targetRoom = activeRoom || demoRoomTIN012;
+      const targetGame = specificGame || activeRoom?.game || games[0];
+      if (!targetGame) return;
+      const code = activeRoom?.gameId === targetGame.id ? activeRoom.roomCode : undefined;
       const summary = buildClassExportSummary(
-        cls,
-        targetGame,
-        targetRoom.roomCode,
-        targetRoom.participants
+        cls, targetGame, code || 'Tất cả phiên', await loadSavedGameResults(targetGame.id, code)
       );
       const workbook = await generateFullClassExcel(summary, targetGame.questions);
       const filename = generateExportFilename(cls.name, targetGame.title);

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { 
   AlertCircle, 
   ArrowUpDown, 
@@ -36,6 +36,7 @@ import {
   ScorePolicy, 
   TimeFilterOption 
 } from '../../types';
+import { loadSavedGameResults } from '../../lib/savedGameResults';
 import { sounds } from '../../utils/audio';
 import { 
   buildClassExportSummary, 
@@ -109,22 +110,36 @@ export const ClassExcelExportPanel: React.FC<ClassExcelExportPanelProps> = ({
     return filtered.length > 0 ? filtered : games;
   }, [games, currentClass]);
 
-  // Build Summary and Cross-Reference Data
-  const exportSummary: ClassExportSummary | null = useMemo(() => {
-    if (!currentClass || selectedGameId === 'all') return null;
-    const targetGame = currentGame || games[0];
-    const roomCode = activeRoom?.roomCode || 'TIN012';
-    const participants = activeRoom?.participants || [];
+  const gameId = currentGame?.id;
+  const roomCode = activeRoom?.gameId === gameId ? activeRoom?.roomCode : undefined;
+  const [savedPreview, setSavedPreview] = useState<{
+    gameId: string; roomCode?: string; participants: Awaited<ReturnType<typeof loadSavedGameResults>>;
+  } | null>(null);
 
-    return buildClassExportSummary(
-      currentClass,
-      targetGame,
-      roomCode,
-      participants,
-      scorePolicy,
-      sortBy
-    );
-  }, [currentClass, currentGame, selectedGameId, activeRoom, scorePolicy, sortBy, games]);
+  useEffect(() => {
+    if (!gameId) return;
+    let current = true;
+    loadSavedGameResults(gameId, roomCode).then(participants => {
+      if (current) setSavedPreview({ gameId, roomCode, participants });
+    }).catch(() => {
+      if (current) setExportFeedback('Không đọc được kết quả đã lưu.');
+    });
+    return () => { current = false; };
+  }, [gameId, roomCode]);
+
+  function summarize(cls: ClassGroup, game: Game, participants: Awaited<ReturnType<typeof loadSavedGameResults>>, code?: string) {
+    return buildClassExportSummary(cls, game, code || 'Tất cả phiên', participants, scorePolicy, sortBy);
+  }
+
+  const exportSummary = currentClass && currentGame && savedPreview &&
+    savedPreview.gameId === gameId && savedPreview.roomCode === roomCode
+    ? summarize(currentClass, currentGame, savedPreview.participants, roomCode)
+    : null;
+
+  async function loadSummary(cls: ClassGroup, game: Game) {
+    const code = activeRoom?.gameId === game.id ? activeRoom.roomCode : undefined;
+    return summarize(cls, game, await loadSavedGameResults(game.id, code), code);
+  }
 
   // Filtered students for Preview table
   const displayedStudents: ClassStudentRow[] = useMemo(() => {
@@ -162,14 +177,23 @@ export const ClassExcelExportPanel: React.FC<ClassExcelExportPanelProps> = ({
       if (selectedGameId === 'all') {
         // Export All Games of this class
         setExportFeedback('Đang tổng hợp điểm tất cả trò chơi trong năm học...');
-        const studentDataMap = new Map();
+        const studentDataMap = new Map<string, Record<string, { score10: number; participated: boolean }>>();
+        for (const game of availableGamesForClass) {
+          const result = summarize(currentClass, game, await loadSavedGameResults(game.id));
+          for (const student of result.students) {
+            if (student.score10 === null || !student.participated) continue;
+            const scores = studentDataMap.get(student.studentId) ?? {};
+            scores[game.id] = { score10: student.score10, participated: true };
+            studentDataMap.set(student.studentId, scores);
+          }
+        }
         const workbook = await generateAllGamesClassExcel(currentClass, availableGamesForClass, studentDataMap);
         const filename = generateExportFilename(currentClass.name, 'Tat_ca_tro_choi');
         await downloadWorkbook(workbook, filename);
       } else {
-        if (!exportSummary || !currentGame) return;
+        if (!currentGame) return;
         setExportFeedback('Đang định dạng màu sắc chuẩn THPT và xếp hạng học sinh...');
-        const workbook = await generateFullClassExcel(exportSummary, currentGame.questions);
+        const workbook = await generateFullClassExcel(await loadSummary(currentClass, currentGame), currentGame.questions);
         const filename = generateExportFilename(currentClass.name, currentGame.title);
         await downloadWorkbook(workbook, filename);
       }
@@ -187,13 +211,13 @@ export const ClassExcelExportPanel: React.FC<ClassExcelExportPanelProps> = ({
   };
 
   const handleExportQuickExcel = async () => {
-    if (!exportSummary) return;
+    if (!currentClass || !currentGame) return;
     setIsExporting(true);
     setExportFeedback('Đang tạo bảng điểm nhanh...');
     sounds.playSpinClick();
 
     try {
-      const workbook = await generateQuickClassExcel(exportSummary);
+      const workbook = await generateQuickClassExcel(await loadSummary(currentClass, currentGame));
       const filename = generateExportFilename(currentClass.name, `Nhanh_${currentGame?.title || 'Game'}`);
       await downloadWorkbook(workbook, filename);
       sounds.playFanfare();
@@ -225,16 +249,9 @@ export const ClassExcelExportPanel: React.FC<ClassExcelExportPanelProps> = ({
           const cls = classes.find(c => c.name === clsName);
           if (!cls) continue;
           const targetGame = currentGame || games[0];
-          const summary = buildClassExportSummary(
-            cls,
-            targetGame,
-            activeRoom?.roomCode || 'TIN012',
-            activeRoom?.participants || [],
-            scorePolicy,
-            sortBy
-          );
+          const summary = await loadSummary(cls, targetGame);
 
-          const sheet = workbook.addWorksheet(`Lop ${cls.name}`);
+          const sheet = workbook.addWorksheet(`Lop ${cls.name.replaceAll("/", "-")}`);
           sheet.addRow([`BÁO CÁO KẾT QUẢ ÔN TẬP – LỚP ${cls.name}`]);
           sheet.addRow([`Trò chơi: ${targetGame.title} | Mã phòng: ${summary.roomCode}`]);
           sheet.addRow([]);
@@ -264,14 +281,7 @@ export const ClassExcelExportPanel: React.FC<ClassExcelExportPanelProps> = ({
           const cls = classes.find(c => c.name === clsName);
           if (!cls) continue;
           const targetGame = currentGame || games[0];
-          const summary = buildClassExportSummary(
-            cls,
-            targetGame,
-            activeRoom?.roomCode || 'TIN012',
-            activeRoom?.participants || [],
-            scorePolicy,
-            sortBy
-          );
+          const summary = await loadSummary(cls, targetGame);
           const workbook = await generateFullClassExcel(summary, targetGame.questions);
           const filename = generateExportFilename(cls.name, targetGame.title);
           await downloadWorkbook(workbook, filename);

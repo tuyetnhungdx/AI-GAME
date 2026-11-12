@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { groupResultRows, resultColumns } from '../src/lib/resultRows.ts';
 
 export default async function handler(req: any, res: any) {
   res.setHeader('Cache-Control', 'no-store');
@@ -29,18 +30,19 @@ export default async function handler(req: any, res: any) {
   // GET: lấy số lượt chơi thật của từng game
 if (req.method === 'GET') {
   try {
-    const { data, error } = await db
-      .from('results')
-      .select('game_id');
+    const rows = [];
+    const pageSize = 500;
+    for (let offset = 0; ; offset += pageSize) {
+      const { data, error } = await db.from('results').select(resultColumns)
+        .order('completed_at').order('id').range(offset, offset + pageSize - 1);
+      if (error) throw error;
+      rows.push(...data);
+      if (data.length < pageSize) break;
+    }
 
-    if (error) throw error;
-
-    const counts: Record<string, number> = {};
-
-    for (const row of data || []) {
-      if (!row.game_id) continue;
-
-      counts[row.game_id] = (counts[row.game_id] || 0) + 1;
+    const counts: Record<string, number> = Object.create(null);
+    for (const { row } of groupResultRows(rows)) {
+      if (row.game_id) counts[row.game_id] = (counts[row.game_id] ?? 0) + 1;
     }
 
     return res.status(200).json({
@@ -105,6 +107,20 @@ if (req.method === 'GET') {
 
     if (resultError) throw resultError;
 
+    let answersSaved = true;
+    if (Array.isArray(body?.answers) && body.answers.length > 0) {
+      const { error } = await db.from('answers').insert(body.answers.map((answer: any, index: number) => ({
+        result_id: savedResult.id, student_name: studentName, class_name: className, room_code: roomCode,
+        question_id: answer.questionId, question_number: answer.questionNumber ?? index + 1,
+        question_text: answer.questionText, chosen_answer: answer.chosenAnswer,
+        chosen_answer_text: answer.chosenAnswerText, correct_answer: answer.correctAnswer,
+        correct_answer_text: answer.correctAnswerText, is_correct: answer.isCorrect,
+        response_time: answer.responseTime ?? 0, score_awarded: answer.scoreAwarded ?? 0,
+      })));
+      answersSaved = !error;
+      if (error) console.error('Save answer details failed:', error.message);
+    }
+
     // 2. Cập nhật thống kê đúng học sinh
     if (studentId) {
       const { data: student, error: studentError } = await db
@@ -151,6 +167,7 @@ if (req.method === 'GET') {
     return res.status(200).json({
       success: true,
       result: savedResult,
+      answersSaved,
     });
   } catch (error: any) {
     console.error('Save result failed:', error);

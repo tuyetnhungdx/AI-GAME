@@ -22,7 +22,7 @@ import {
 } from './data/initialData';
 import { ClassGroup, Game, Participant, ParticipantAnswer, Room, TeacherProfile } from './types';
 import { sounds } from './utils/audio';
-import { saveGameResultToSupabase } from './lib/supabase';
+
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>('home');
@@ -53,8 +53,10 @@ export default function App() {
     }
   };
 
-  loadPlayCounts();
-}, []);
+  void loadPlayCounts();
+  window.addEventListener('focus', loadPlayCounts);
+  return () => window.removeEventListener('focus', loadPlayCounts);
+}, [activeTab]);
   const [classes, setClasses] = useState<ClassGroup[]>(() => {
   try {
     const raw = localStorage.getItem('ai-game:classes:v1');
@@ -482,44 +484,34 @@ const hostRoom: Room = {
 
       setActiveRoom({ ...activeRoom, participants: updatedParticipants, status: 'ended' });
 
-      // Persist results to server API & Supabase
       try {
-        await fetch('/api/results', {
+        const response = await fetch('/api/results', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-                studentId: currentParticipant.studentId,
-                studentName: currentParticipant.studentName,
-                className: currentParticipant.className,
-                gameTitle: activeRoom.game.title,
-                gameId: activeRoom.game.id,
-                roomCode: activeRoom.roomCode,
-                score: finalScore,
-                correctCount,
-                wrongCount,
-                accuracyRate,
-                totalTimeSeconds: totalTime,
-                rank: updatedParticipant.rank || 1,
-              }),
+            studentId: currentParticipant.studentId,
+            studentName: currentParticipant.studentName,
+            className: currentParticipant.className,
+            gameTitle: activeRoom.game.title,
+            gameId: activeRoom.game.id,
+            roomCode: activeRoom.roomCode,
+            score: finalScore,
+            correctCount,
+            wrongCount,
+            accuracyRate,
+            totalTimeSeconds: totalTime,
+            rank: updatedParticipant.rank || 1,
+            answers,
+          }),
         });
-
-        // Direct client-side Supabase write
-        await saveGameResultToSupabase({
-          studentName: currentParticipant.studentName,
-          className: currentParticipant.className,
-          gameTitle: activeRoom.game.title,
-          gameId: activeRoom.game.id,
-          roomCode: activeRoom.roomCode,
-          score: finalScore,
-          correctCount,
-          wrongCount,
-          accuracyRate,
-          totalTimeSeconds: totalTime,
-          rank: updatedParticipant.rank || 1,
-          answers,
-        });
-      } catch (err) {
-        console.warn('Could not save result to Supabase or server:', err);
+        const result = await response.json();
+        if (!response.ok || !result.success) throw new Error(result.error);
+        if (result.answersSaved === false) {
+          window.alert('Đã lưu điểm tổng hợp nhưng chưa lưu được chi tiết từng câu.');
+        }
+      } catch (error) {
+        console.warn('Could not save game result:', error);
+        window.alert('Chưa xác nhận được điểm đã lưu. Hãy báo giáo viên và giữ lại ảnh kết quả.');
       }
     }
     setActiveTab('student-podium');
