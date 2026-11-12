@@ -59,7 +59,6 @@ interface ClassExcelExportPanelProps {
 export const ClassExcelExportPanel: React.FC<ClassExcelExportPanelProps> = ({
   classes,
   games,
-  activeRoom,
   defaultClassId = '12A1',
   defaultGameId = 'game-racing-tin12',
 }) => {
@@ -111,7 +110,8 @@ export const ClassExcelExportPanel: React.FC<ClassExcelExportPanelProps> = ({
   }, [games, currentClass]);
 
   const gameId = currentGame?.id;
-  const roomCode = activeRoom?.gameId === gameId ? activeRoom?.roomCode : undefined;
+  const [roomInput, setRoomInput] = useState('');
+  const roomCode = roomInput.trim().toUpperCase() || undefined;
   const [savedPreview, setSavedPreview] = useState<{
     gameId: string; roomCode?: string; participants: Awaited<ReturnType<typeof loadSavedGameResults>>;
   } | null>(null);
@@ -137,8 +137,7 @@ export const ClassExcelExportPanel: React.FC<ClassExcelExportPanelProps> = ({
     : null;
 
   async function loadSummary(cls: ClassGroup, game: Game) {
-    const code = activeRoom?.gameId === game.id ? activeRoom.roomCode : undefined;
-    return summarize(cls, game, await loadSavedGameResults(game.id, code), code);
+    return summarize(cls, game, await loadSavedGameResults(game.id, roomCode), roomCode);
   }
 
   // Filtered students for Preview table
@@ -465,6 +464,19 @@ export const ClassExcelExportPanel: React.FC<ClassExcelExportPanelProps> = ({
         </div>
       </div>
 
+      {currentGame && (
+        <label className="flex flex-col gap-1 text-xs text-slate-300">
+          Mã phòng (để trống để xem tất cả phòng)
+          <input
+            value={roomInput}
+            onChange={event => setRoomInput(event.target.value)}
+            placeholder="Ví dụ: 840746"
+            maxLength={20}
+            className="w-full max-w-xs rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+          />
+        </label>
+      )}
+
       {/* 4. PREVIEW DASHBOARD CARD */}
       {exportSummary && (
         <div className="bg-[#071322] border border-cyan-500/30 rounded-2xl p-5 shadow-inner space-y-4">
@@ -482,6 +494,11 @@ export const ClassExcelExportPanel: React.FC<ClassExcelExportPanelProps> = ({
             </div>
           </div>
 
+          {exportSummary.participatedCount === 0 && (
+            <p className="text-xs text-amber-300" role="status">
+              Chưa tìm thấy điểm hoàn thành khớp với lớp, trò chơi và mã phòng đã chọn.
+            </p>
+          )}
           {/* 7 Core Statistical Counters */}
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
             <div className="bg-[#0B1A2F] border border-slate-800 rounded-xl p-3 text-center">
@@ -494,7 +511,7 @@ export const ClassExcelExportPanel: React.FC<ClassExcelExportPanelProps> = ({
             <div className="bg-[#0B1A2F] border border-emerald-500/30 rounded-xl p-3 text-center">
               <div className="text-[10px] text-emerald-400 flex items-center justify-center gap-1">
                 <UserCheck className="w-3 h-3" />
-                <span>Đã tham gia</span>
+                <span>Có kết quả lưu</span>
               </div>
               <div className="text-xl font-mono font-bold text-emerald-400 mt-0.5">
                 {exportSummary.participatedCount}
@@ -504,7 +521,7 @@ export const ClassExcelExportPanel: React.FC<ClassExcelExportPanelProps> = ({
             <div className="bg-[#0B1A2F] border border-amber-500/30 rounded-xl p-3 text-center">
               <div className="text-[10px] text-amber-400 flex items-center justify-center gap-1">
                 <UserX className="w-3 h-3" />
-                <span>Chưa tham gia</span>
+                <span>Chưa có kết quả</span>
               </div>
               <div className="text-xl font-mono font-bold text-amber-300 mt-0.5">
                 {exportSummary.absentCount}
@@ -680,7 +697,7 @@ export const ClassExcelExportPanel: React.FC<ClassExcelExportPanelProps> = ({
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-950 text-amber-300 border border-amber-800/50">
-                          Chưa tham gia
+                          Chưa có kết quả
                         </span>
                       )}
                     </td>
