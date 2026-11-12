@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { 
   ArrowRight, 
   Check, 
@@ -13,6 +13,7 @@ import {
   Users, 
   Wifi 
 } from 'lucide-react';
+import { useRoomAttendance } from '../../hooks/useRoomAttendance';
 import { Room } from '../../types';
 import { sounds } from '../../utils/audio';
 
@@ -30,35 +31,8 @@ export const LiveRoomHostView: React.FC<LiveRoomHostViewProps> = ({
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
-  const [connectedParticipants, setConnectedParticipants] = useState<any[]>(
-  room.participants || []
-);
-
-useEffect(() => {
-  const loadParticipants = async () => {
-    try {
-      const response = await fetch(
-        `/api/rooms/${room.roomCode}/participants`
-      );
-
-      if (!response.ok) return;
-
-      const data = await response.json();
-
-      if (data.success) {
-        setConnectedParticipants(data.participants || []);
-      }
-    } catch (error) {
-      console.error('Lỗi tải học sinh trong phòng:', error);
-    }
-  };
-
-  loadParticipants();
-
-  const timer = setInterval(loadParticipants, 2000);
-
-  return () => clearInterval(timer);
-}, [room.roomCode]);
+  const attendance = useRoomAttendance(room.roomCode);
+  const connectedParticipants = attendance?.participants ?? [];
 
   const roomUrl = `${window.location.origin}?room=${room.roomCode}`;
 
@@ -152,7 +126,7 @@ useEffect(() => {
             className="w-full sm:w-auto px-12 py-4 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-black text-base sm:text-lg tracking-wider shadow-xl shadow-emerald-500/30 active:scale-95 transition-all inline-flex items-center justify-center gap-3"
           >
             <Play className="w-6 h-6 fill-slate-950" />
-            <span>BẮT ĐẦU TRÒ CHƠI NGAY</span>
+            <span>THEO DÕI KẾT QUẢ</span>
           </button>
         </div>
       </div>
@@ -163,17 +137,19 @@ useEffect(() => {
           <div className="flex items-center gap-2">
             <Users className="w-5 h-5 text-cyan-400" />
             <h3 className="font-bold text-base text-white">
-              Danh sách học sinh đã kết nối ({connectedParticipants.length})
+              Học sinh đã vào phòng ({attendance ? connectedParticipants.length : "—"})
             </h3>
           </div>
           <span className="text-xs text-slate-400">
-            Học sinh sẽ xuất hiện tức thì khi nhập mã phòng
+            Đã lưu điểm: {attendance?.completedCount ?? "—"}
           </span>
         </div>
 
        {connectedParticipants.length === 0 ? (
           <div className="py-12 text-center text-slate-500 text-xs">
-            Chưa có học sinh nào vào phòng. Hãy chia sẻ mã <strong>{room.roomCode}</strong> lên máy chiếu!
+            {attendance === null ? 'Chưa đọc được danh sách từ máy chủ.' : attendance
+              ? 'Chưa có học sinh nào vào phòng.'
+              : 'Đang tải danh sách phòng…'}
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">

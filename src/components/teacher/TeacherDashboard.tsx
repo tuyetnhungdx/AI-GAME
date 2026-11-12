@@ -28,6 +28,7 @@ import {
   Users 
 } from 'lucide-react';
 import { ClassGroup, Game, Question, Room, TeacherProfile } from '../../types';
+import { useRoomAttendance } from '../../hooks/useRoomAttendance';
 import { loadSavedGameResults } from '../../lib/savedGameResults';
 import { sounds } from '../../utils/audio';
 import { 
@@ -102,6 +103,17 @@ const handleSaveEditedGame = async () => {
   const [isQuickExporting, setIsQuickExporting] = useState<boolean>(false);
   const [quickClassModal, setQuickClassModal] = useState<ClassGroup | null>(null);
   const [showSupabaseModal, setShowSupabaseModal] = useState<boolean>(false);
+
+  const roomAttendance = useRoomAttendance(activeRoom?.roomCode);
+
+  const openRoomReport = async (room: Room) => {
+    try {
+      const participants = await loadSavedGameResults(room.gameId, room.roomCode);
+      onViewResults({ ...room, participants });
+    } catch {
+      window.alert('Chưa đọc được kết quả của phòng. Cô thử mở lại báo cáo.');
+    }
+  };
 
   const handleQuickExportRecent = async () => {
     setIsQuickExporting(true);
@@ -360,7 +372,7 @@ const handleSaveEditedGame = async () => {
               </div>
 
               {/* Active Room Callout if any */}
-              {activeRoom && (
+              {activeRoom && /^\d{6}$/.test(activeRoom.roomCode) && (
                 <div className="bg-gradient-to-r from-cyan-950/60 via-indigo-950/60 to-purple-950/60 border border-cyan-500/50 rounded-2xl p-5 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5 mb-1">
@@ -371,13 +383,13 @@ const handleSaveEditedGame = async () => {
                       Mã phòng: <span className="font-mono text-cyan-300 font-extrabold text-xl ml-1">{activeRoom.roomCode}</span>
                     </h3>
                     <p className="text-xs text-slate-400 mt-0.5">
-                      {activeRoom.game.title} ({activeRoom.participants.length} học sinh)
+                      {activeRoom.game.title} ({roomAttendance?.participants.length ?? "—"} học sinh đã vào)
                     </p>
                   </div>
 
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => onViewResults(activeRoom)}
+                      onClick={() => void openRoomReport(activeRoom)}
                       className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow transition-all"
                     >
                       Xem kết quả & Thống kê AI
@@ -624,17 +636,17 @@ const handleSaveEditedGame = async () => {
           {(sidebarTab === 'rooms' || sidebarTab === 'results') && (
             <div className="space-y-6">
               {/* Active Room if any */}
-              {activeRoom && (
+              {activeRoom && /^\d{6}$/.test(activeRoom.roomCode) && (
                 <div className="p-4 bg-slate-900/80 rounded-2xl border border-cyan-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg">
                   <div>
                     <span className="text-[10px] font-mono text-cyan-300 font-bold bg-cyan-950 px-2 py-0.5 rounded border border-cyan-800/50">
                       MÃ PHÒNG: {activeRoom.roomCode}
                     </span>
                     <h4 className="font-bold text-white text-base mt-1">{activeRoom.game.title}</h4>
-                    <p className="text-xs text-slate-400">{activeRoom.participants.length} học sinh tham gia</p>
+                    <p className="text-xs text-slate-400">{roomAttendance?.participants.length ?? "—"} học sinh đã vào · {roomAttendance?.completedCount ?? "—"} học sinh đã lưu điểm</p>
                   </div>
                   <button
-                    onClick={() => onViewResults(activeRoom)}
+                    onClick={() => void openRoomReport(activeRoom)}
                     className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs rounded-xl shadow cursor-pointer"
                   >
                     Mở Báo cáo & Phân tích Sư phạm AI
@@ -647,7 +659,8 @@ const handleSaveEditedGame = async () => {
                 classes={classes}
                 games={games}
                 activeRoom={activeRoom}
-                defaultClassId="12A1"
+                defaultClassId={roomAttendance?.participants[0]?.className || classes[0]?.name}
+                defaultGameId={/^\d{6}$/.test(activeRoom?.roomCode ?? '') ? activeRoom?.gameId : games[0]?.id}
               />
             </div>
           )}

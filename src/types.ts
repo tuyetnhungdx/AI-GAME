@@ -78,6 +78,7 @@ export interface Game {
   id: string;
   teacherId: string;
   title: string;
+  description?: string;
   subject: Subject;
   grade: Grade;
   textbook: string;

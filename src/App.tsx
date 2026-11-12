@@ -201,8 +201,8 @@ const handleClassesChange = (next: ClassGroup[]): boolean => {
     }
 
     // Local fallback check
-    if (roomCode === 'TIN012' || activeRoom?.roomCode === roomCode) {
-      const fallbackRoom = activeRoom || demoRoomTIN012;
+    if (roomCode === 'TIN012') {
+      const fallbackRoom = demoRoomTIN012;
       const newParticipant: Participant = {
         id: `p-local-${Date.now()}`,
         roomId: fallbackRoom.id,
@@ -262,65 +262,17 @@ const handleClassesChange = (next: ClassGroup[]): boolean => {
       if (res.ok) {
         const data = await res.json();
         if (data.success && data.room) {
-  setActiveRoom(data.room);
-  setCurrentParticipant(data.participant);
-
-  setActiveTab('student-lobby');
-  sounds.playSpinClick();
-  return true;
-}
+          setActiveRoom(data.room);
+          setCurrentParticipant(null);
+          setActiveTab('teacher-host');
+          sounds.playSpinClick();
+          return;
+        }
       }
-    } catch {
-      // ignore
+    } catch (error) {
+      console.warn('Could not open room for published game:', error);
     }
-
-    // Local room creation fallback
-    window.alert(
-  'Chưa tạo được phòng online. Hãy kiểm tra API và cấu hình Supabase trên Vercel.'
-);
-return;
-    const localRoom: Room = {
-      id: `room-${Date.now()}`,
-      gameId: newGame.id,
-      roomCode: Math.floor(100000 + Math.random() * 900000).toString(),
-      status: 'waiting',
-      createdAt: new Date().toISOString(),
-      game: newGame,
-      participants: [
-        {
-          id: 'p-sim-1',
-          roomId: `room-${Date.now()}`,
-          studentName: 'Nguyễn Văn An',
-          className: '12A1',
-          score: 0,
-          streak: 0,
-          maxStreak: 0,
-          correctCount: 0,
-          wrongCount: 0,
-          totalTimeSeconds: 0,
-          joinedAt: new Date().toISOString(),
-          answers: [],
-          finished: false,
-        },
-        {
-          id: 'p-sim-2',
-          roomId: `room-${Date.now()}`,
-          studentName: 'Trần Thu Hà',
-          className: '12A1',
-          score: 0,
-          streak: 0,
-          maxStreak: 0,
-          correctCount: 0,
-          wrongCount: 0,
-          totalTimeSeconds: 0,
-          joinedAt: new Date().toISOString(),
-          answers: [],
-          finished: false,
-        },
-      ],
-    };
-    setActiveRoom(localRoom);
-    setActiveTab('teacher-host');
+    window.alert('Đã lưu trò chơi. Chưa mở được phòng online. Hãy thử mở phòng từ Kho trò chơi.');
   };
 
   // Action: Teacher selects an existing game to host
@@ -444,6 +396,28 @@ const hostRoom: Room = {
     };
   };
 
+  const [pendingResult, setPendingResult] = useState<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState<'practice' | 'saving' | 'saved' | 'partial' | 'failed'>('practice');
+
+  async function saveResult(payload: string) {
+    setSaveStatus('saving');
+    try {
+      const response = await fetch('/api/results', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload,
+        signal: AbortSignal.timeout(12000),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.error);
+      setSaveStatus(result.answersSaved === false ? 'partial' : 'saved');
+      setPendingResult(null);
+    } catch (error) {
+      console.warn('Could not save game result:', error);
+      setSaveStatus('failed');
+    }
+  }
+
   // Action: Game finished with complete question answers and Supabase sync
   const handleFinishGame = async (finalScore: number, answers: ParticipantAnswer[]) => {
     const correctCount = answers.filter((a) => a.isCorrect).length;
@@ -484,34 +458,28 @@ const hostRoom: Room = {
 
       setActiveRoom({ ...activeRoom, participants: updatedParticipants, status: 'ended' });
 
-      try {
-        const response = await fetch('/api/results', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            studentId: currentParticipant.studentId,
-            studentName: currentParticipant.studentName,
-            className: currentParticipant.className,
-            gameTitle: activeRoom.game.title,
-            gameId: activeRoom.game.id,
-            roomCode: activeRoom.roomCode,
-            score: finalScore,
-            correctCount,
-            wrongCount,
-            accuracyRate,
-            totalTimeSeconds: totalTime,
-            rank: updatedParticipant.rank || 1,
-            answers,
-          }),
+      if (currentParticipant.studentId && /^\d{6}$/.test(activeRoom.roomCode)) {
+        const payload = JSON.stringify({
+          resultId: crypto.randomUUID(),
+          studentId: currentParticipant.studentId,
+          studentName: currentParticipant.studentName,
+          className: currentParticipant.className,
+          gameTitle: activeRoom.game.title,
+          gameId: activeRoom.game.id,
+          roomCode: activeRoom.roomCode,
+          score: finalScore,
+          correctCount,
+          wrongCount,
+          accuracyRate,
+          totalTimeSeconds: totalTime,
+          rank: updatedParticipant.rank || 1,
+          answers,
         });
-        const result = await response.json();
-        if (!response.ok || !result.success) throw new Error(result.error);
-        if (result.answersSaved === false) {
-          window.alert('Đã lưu điểm tổng hợp nhưng chưa lưu được chi tiết từng câu.');
-        }
-      } catch (error) {
-        console.warn('Could not save game result:', error);
-        window.alert('Chưa xác nhận được điểm đã lưu. Hãy báo giáo viên và giữ lại ảnh kết quả.');
+        setPendingResult(payload);
+        void saveResult(payload);
+      } else {
+        setPendingResult(null);
+        setSaveStatus('practice');
       }
     }
     setActiveTab('student-podium');
@@ -602,10 +570,8 @@ const refreshClassesFromServer = async () => {
         {activeTab === 'teacher-host' && (
           <LiveRoomHostView
             room={activeRoom}
-            onStartGame={handleStartGame}
-            onJoinAsStudent={() => {
-              handleJoinRoom(activeRoom.roomCode, 'Nguyễn Văn An', '12A1');
-            }}
+            onStartGame={() => setActiveTab('teacher-dashboard')}
+            onJoinAsStudent={() => setActiveTab('student-join')}
           />
         )}
 
@@ -615,7 +581,8 @@ const refreshClassesFromServer = async () => {
             classes={classes}
             onJoinRoom={handleJoinRoom}
             initialRoomCode={
-  new URLSearchParams(window.location.search).get('room') || ''
+  new URLSearchParams(window.location.search).get('room') ||
+  (/^\d{6}$/.test(activeRoom.roomCode) ? activeRoom.roomCode : '')
 }
           />
         )}
@@ -641,6 +608,25 @@ const refreshClassesFromServer = async () => {
 
         {/* Student Podium & Leaderboard */}
         {activeTab === 'student-podium' && currentParticipant && (
+          <>
+          <div className="mx-auto max-w-3xl px-4 pt-4 text-sm text-slate-200" role="status">
+            {saveStatus === 'practice' && 'Phiên chơi thử không tính vào kết quả lớp.'}
+            {saveStatus === 'saving' && 'Đang lưu điểm…'}
+            {saveStatus === 'saved' && 'Đã lưu điểm.'}
+            {saveStatus === 'partial' && 'Đã lưu điểm. Chưa xác nhận được chi tiết từng câu.'}
+            {saveStatus === 'failed' && (
+              <>
+                Chưa xác nhận được điểm đã lưu. Hãy giữ trang này mở và thử lại.
+                <button
+                  type="button"
+                  className="ml-2 rounded bg-cyan-400 px-3 py-1 font-bold text-slate-950"
+                  onClick={() => { if (pendingResult) void saveResult(pendingResult); }}
+                >
+                  Lưu lại điểm
+                </button>
+              </>
+            )}
+          </div>
           <LeaderboardPodium
             room={activeRoom}
             currentParticipant={currentParticipant}
@@ -654,6 +640,7 @@ const refreshClassesFromServer = async () => {
             onGoHome={() => setActiveTab('home')}
             onViewTeacherDashboard={() => setActiveTab('results')}
           />
+          </>
         )}
 
         {/* Teacher Detailed Results & Pedagogical AI Analysis & Excel Export */}

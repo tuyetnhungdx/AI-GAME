@@ -38,7 +38,12 @@ export default async function handler(req: any, res: any) {
 
     if (error) throw error;
 
-    const participants = (data || []).map((p: any) => ({
+    const identity = (row: { class_name: string; student_name: string }) =>
+      JSON.stringify([row.class_name, row.student_name].map(value =>
+        value.normalize('NFC').trim().replace(/\s+/g, ' ').toLowerCase()
+      ));
+    const unique = new Map((data || []).map(row => [identity(row), row]));
+    const participants = [...unique.values()].map(p => ({
       id: p.id,
       studentName: p.student_name,
       className: p.class_name,
@@ -46,9 +51,16 @@ export default async function handler(req: any, res: any) {
       joinedAt: p.joined_at,
     }));
 
+    const { data: results, error: resultsError } = await db.from('results')
+      .select('student_name,class_name').eq('room_code', code);
+    const completedCount = resultsError ? null : new Set(
+      (results || []).map(identity).filter(key => unique.has(key))
+    ).size;
+
     return res.status(200).json({
       success: true,
       participants,
+      completedCount,
     });
   } catch (error: any) {
     console.error('Load participants failed:', error);

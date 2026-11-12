@@ -65,6 +65,11 @@ if (req.method === 'GET') {
         ? JSON.parse(req.body)
         : req.body;
 
+    const resultId = body?.resultId;
+    if (resultId !== undefined && (typeof resultId !== 'string' ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(resultId))) {
+      return res.status(400).json({ success: false, error: 'Mã kết quả không hợp lệ' });
+    }
     const studentId = String(body?.studentId || '').trim();
     const studentName = String(body?.studentName || '').trim();
     const className = String(body?.className || '').trim();
@@ -90,6 +95,7 @@ if (req.method === 'GET') {
     const { data: savedResult, error: resultError } = await db
       .from('results')
       .insert({
+        ...(resultId ? { id: resultId } : {}),
         student_name: studentName,
         class_name: className,
         game_title: gameTitle,
@@ -105,6 +111,18 @@ if (req.method === 'GET') {
       .select()
       .single();
 
+    if (resultError?.code === '23505' && resultId) {
+      const { data: existing, error } = await db.from('results').select('id')
+        .eq('id', resultId).eq('room_code', roomCode).eq('game_id', gameId)
+        .eq('student_name', studentName).eq('class_name', className).maybeSingle();
+      if (error || !existing) throw error || resultError;
+      const { count, error: detailsError } = await db.from('answers')
+        .select('id', { count: 'exact', head: true }).eq('result_id', resultId);
+      return res.status(200).json({
+        success: true,
+        answersSaved: !body.answers?.length || (!detailsError && count === body.answers.length),
+      });
+    }
     if (resultError) throw resultError;
 
     let answersSaved = true;
@@ -129,7 +147,7 @@ if (req.method === 'GET') {
         .eq('id', studentId)
         .maybeSingle();
 
-      if (studentError) throw studentError;
+      if (studentError) console.error('Load student statistics failed:', studentError.message);
 
       if (student) {
         const oldCompleted = Number(student.completed_games || 0);
@@ -160,7 +178,7 @@ if (req.method === 'GET') {
           })
           .eq('id', studentId);
 
-        if (updateError) throw updateError;
+        if (updateError) console.error('Update student statistics failed:', updateError.message);
       }
     }
 

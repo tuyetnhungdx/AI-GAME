@@ -59,6 +59,7 @@ export function useGameEngine({
   const [remainingTime, setRemainingTime] = useState<number>(timePerQuestion);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const questionStartTimeRef = useRef<number>(Date.now());
+  const finishedRef = useRef(false);
   const isLockedRef = useRef<boolean>(false);
 
   const currentQuestion: Question | undefined = questions[currentIndex];
@@ -277,6 +278,8 @@ export function useGameEngine({
 
   // Finish game
   const finishGame = () => {
+    if (finishedRef.current) return;
+    finishedRef.current = true;
     clearTimer();
     setGameState('FINISHED');
     sounds.playFanfare();
@@ -292,6 +295,7 @@ export function useGameEngine({
 
   // Start game from WAITING state
   const startGame = () => {
+    finishedRef.current = false;
     setCurrentIndex(0);
     setScore(0);
     setStreak(0);
