@@ -25,6 +25,7 @@ import { Difficulty, Game, GameType, Grade, Question, Subject } from '../../type
 import { sounds } from '../../utils/audio';
 import { demoQuestionsTin12 } from '../../data/initialData';
 import { CodeBlock } from '../CodeBlock';
+import { QuestionEditor } from './QuestionEditor';
 import { TeacherQuestionImporter } from './TeacherQuestionImporter';
 
 interface AIGeneratorViewProps {
@@ -64,6 +65,7 @@ export const AIGeneratorView: React.FC<AIGeneratorViewProps> = ({
   const [showApiKeyGuide, setShowApiKeyGuide] = useState<boolean>(false);
 
   // Questions Preview & Editor state
+  const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
   const [activeQuestions, setActiveQuestions] = useState<Question[] | null>(null);
 
   // Game Type Selection (All 10 Games)
@@ -208,6 +210,7 @@ export const AIGeneratorView: React.FC<AIGeneratorViewProps> = ({
   const handleDeleteQuestion = (id: string) => {
     if (!activeQuestions) return;
     setActiveQuestions(activeQuestions.filter(q => q.id !== id));
+    if (editingQuestionId === id) setEditingQuestionId(null);
   };
 
   const handleDuplicateQuestion = (q: Question) => {
@@ -604,6 +607,7 @@ export const AIGeneratorView: React.FC<AIGeneratorViewProps> = ({
 
             <button
               onClick={handlePublish}
+              disabled={activeQuestions.some(question => question.id === editingQuestionId)}
               className="px-8 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black text-sm tracking-wide shadow-lg shadow-emerald-500/30 active:scale-95 transition-all flex items-center gap-2"
             >
               <span>XUẤT BẢN & MỞ PHÒNG CHƠI</span>
@@ -689,6 +693,15 @@ export const AIGeneratorView: React.FC<AIGeneratorViewProps> = ({
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
+                      onClick={() => setEditingQuestionId(q.id)}
+                      disabled={activeQuestions.some(question => question.id === editingQuestionId)}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-cyan-950 px-2 py-1.5 text-xs font-semibold text-cyan-300 hover:bg-cyan-900 disabled:opacity-50"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" aria-hidden="true" />
+                      Chỉnh sửa
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => moveQuestion(idx, 'up')}
                       disabled={idx === 0}
                       className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 disabled:opacity-30"
@@ -724,45 +737,58 @@ export const AIGeneratorView: React.FC<AIGeneratorViewProps> = ({
                   </div>
                 </div>
 
-                <p className="text-sm sm:text-base font-semibold text-white mb-2 leading-relaxed">
-                  {q.question}
-                </p>
+                {editingQuestionId === q.id ? (
+                  <QuestionEditor
+                    question={q}
+                    onCancel={() => setEditingQuestionId(null)}
+                    onSave={updated => {
+                      setActiveQuestions(current => current?.map(item => item.id === updated.id ? updated : item) ?? null);
+                      setEditingQuestionId(null);
+                    }}
+                  />
+                ) : (
+                  <>
+                    <p className="text-sm sm:text-base font-semibold text-white mb-2 leading-relaxed">
+                      {q.question}
+                    </p>
 
-                {q.codeSnippet && (
-                  <CodeBlock code={q.codeSnippet} language={q.codeLanguage || 'python'} />
-                )}
+                    {q.codeSnippet && (
+                      <CodeBlock code={q.codeSnippet} language={q.codeLanguage || 'python'} />
+                    )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
-                  {q.options.map((opt, oIdx) => {
-                    const isRight = oIdx === q.correctAnswer;
-                    const letters = ['A', 'B', 'C', 'D'];
-                    return (
-                      <div
-                        key={oIdx}
-                        className={`p-2.5 rounded-xl border text-xs flex items-start gap-2 ${
-                          isRight
-                            ? 'bg-emerald-950/40 border-emerald-500/50 text-emerald-200 font-semibold'
-                            : 'bg-slate-900/60 border-slate-800 text-slate-300'
-                        }`}
-                      >
-                        <span
-                          className={`w-5 h-5 rounded font-bold flex items-center justify-center flex-shrink-0 text-[10px] ${
-                            isRight ? 'bg-emerald-400 text-slate-950' : 'bg-slate-800 text-slate-400'
-                          }`}
-                        >
-                          {letters[oIdx]}
-                        </span>
-                        <span className="flex-1">{opt}</span>
-                        {isRight && <span className="text-[10px] text-emerald-400 font-bold">✓ Đúng</span>}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
+                      {q.options.map((opt, oIdx) => {
+                        const isRight = oIdx === q.correctAnswer;
+                        const letters = ['A', 'B', 'C', 'D'];
+                        return (
+                          <div
+                            key={oIdx}
+                            className={`p-2.5 rounded-xl border text-xs flex items-start gap-2 ${
+                              isRight
+                                ? 'bg-emerald-950/40 border-emerald-500/50 text-emerald-200 font-semibold'
+                                : 'bg-slate-900/60 border-slate-800 text-slate-300'
+                            }`}
+                          >
+                            <span
+                              className={`w-5 h-5 rounded font-bold flex items-center justify-center flex-shrink-0 text-[10px] ${
+                                isRight ? 'bg-emerald-400 text-slate-950' : 'bg-slate-800 text-slate-400'
+                              }`}
+                            >
+                              {letters[oIdx]}
+                            </span>
+                            <span className="flex-1">{opt}</span>
+                            {isRight && <span className="text-[10px] text-emerald-400 font-bold">✓ Đúng</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {q.explanation && (
+                      <div className="mt-3 text-[11px] text-slate-400 bg-black/20 p-2.5 rounded-xl border border-slate-800/80">
+                        💡 <strong>Giải thích:</strong> {q.explanation}
                       </div>
-                    );
-                  })}
-                </div>
-
-                {q.explanation && (
-                  <div className="mt-3 text-[11px] text-slate-400 bg-black/20 p-2.5 rounded-xl border border-slate-800/80">
-                    💡 <strong>Giải thích:</strong> {q.explanation}
-                  </div>
+                    )}
+                  </>
                 )}
               </div>
             ))}
@@ -771,6 +797,7 @@ export const AIGeneratorView: React.FC<AIGeneratorViewProps> = ({
           <div className="pt-4 border-t border-slate-800 flex justify-end">
             <button
               onClick={handlePublish}
+              disabled={activeQuestions.some(question => question.id === editingQuestionId)}
               className="w-full sm:w-auto px-10 py-4 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-black text-base shadow-xl shadow-emerald-500/30 active:scale-95 transition-all flex items-center justify-center gap-2"
             >
               <span>XUẤT BẢN & BẮT ĐẦU TRÒ CHƠI</span>
