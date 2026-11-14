@@ -138,7 +138,6 @@ export function useGameEngine({
       setRemainingTime((prev) => {
         if (prev <= 1) {
           clearTimer();
-          handleTimeout();
           return 0;
         }
         if (prev <= 5 && prev > 1) {
@@ -188,11 +187,6 @@ export function useGameEngine({
 
     setGameState('ANSWERED');
 
-    if (settings.autoNextQuestion) {
-      setTimeout(() => {
-        nextQuestion();
-      }, 2500);
-    }
   };
 
   // Student selects an answer option
@@ -258,11 +252,6 @@ export function useGameEngine({
 
     setGameState('ANSWERED');
 
-    if (settings.autoNextQuestion) {
-      setTimeout(() => {
-        nextQuestion();
-      }, 2200);
-    }
   };
 
   // Advance to next question or finish game
@@ -351,6 +340,17 @@ export function useGameEngine({
     setUsedLifelines((prev) => ({ ...prev, audiencePoll: true }));
     sounds.playSpinClick();
   };
+
+  useEffect(() => {
+    if (gameState === 'PLAYING' && remainingTime === 0) handleTimeout();
+  }, [gameState, remainingTime]);
+
+  useEffect(() => {
+    const isLastQuestion = currentIndex + 1 === totalQuestions;
+    if (gameState !== 'ANSWERED' || (!settings.autoNextQuestion && !isLastQuestion)) return;
+    const timer = setTimeout(() => nextQuestion(), isLastQuestion ? 4500 : 2300);
+    return () => clearTimeout(timer);
+  }, [gameState, currentIndex, totalQuestions, settings.autoNextQuestion, score, answers]);
 
   // Auto-start if state is not finished and not started
   useEffect(() => {

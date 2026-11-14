@@ -1,6 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 import { groupResultRows, resultColumns } from '../src/lib/resultRows.ts';
 
+function wholeSeconds(value: unknown) {
+  const seconds = Number(value ?? 0);
+  return Number.isFinite(seconds) ? Math.max(0, Math.round(seconds)) : 0;
+}
+
 export default async function handler(req: any, res: any) {
   res.setHeader('Cache-Control', 'no-store');
 
@@ -81,7 +86,7 @@ if (req.method === 'GET') {
     const correctCount = Number(body?.correctCount || 0);
     const wrongCount = Number(body?.wrongCount || 0);
     const accuracyRate = Number(body?.accuracyRate || 0);
-    const totalTimeSeconds = Number(body?.totalTimeSeconds || 0);
+    const totalTimeSeconds = wholeSeconds(body?.totalTimeSeconds);
     const rank = Number(body?.rank || 1);
 
     if (!studentName || !className || !gameTitle) {
@@ -133,7 +138,7 @@ if (req.method === 'GET') {
         question_text: answer.questionText, chosen_answer: answer.chosenAnswer,
         chosen_answer_text: answer.chosenAnswerText, correct_answer: answer.correctAnswer,
         correct_answer_text: answer.correctAnswerText, is_correct: answer.isCorrect,
-        response_time: answer.responseTime ?? 0, score_awarded: answer.scoreAwarded ?? 0,
+        response_time: wholeSeconds(answer.responseTime), score_awarded: answer.scoreAwarded ?? 0,
       })));
       answersSaved = !error;
       if (error) console.error('Save answer details failed:', error.message);

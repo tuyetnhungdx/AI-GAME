@@ -821,16 +821,18 @@ export function buildClassExportSummary(
   teacherName: string = 'Cô Trần Thị Tuyết Nhung',
   schoolName: string = 'TRƯỜNG THPT NGUYỄN DỤC'
 ): ClassExportSummary {
+  const normalize = (value?: string) => (value ?? '').normalize('NFC').trim().replace(/\s+/g, ' ').toLowerCase();
+
   // Map participants by student identifier (studentId or studentCode or normalized studentName)
   const participantMap = new Map<string, any[]>();
 
   participants.forEach((p) => {
     // Check if participant belongs to this class (or classGroup is 'all' / matching class name)
-    if (classGroup.name && p.className && p.className.trim().toLowerCase() !== classGroup.name.trim().toLowerCase()) {
+    if (classGroup.name && p.className && normalize(p.className) !== normalize(classGroup.name)) {
       return;
     }
 
-    const key = (p.studentId || p.studentCode || p.studentName || '').trim().toLowerCase();
+    const key = normalize(p.studentId || p.studentCode || p.studentName);
     if (!participantMap.has(key)) {
       participantMap.set(key, []);
     }
@@ -839,14 +841,14 @@ export function buildClassExportSummary(
 
   const uniqueNames = new Map<string, number>();
   for (const student of classGroup.students) {
-    const name = student.fullName.trim().toLowerCase();
+    const name = normalize(student.fullName);
     uniqueNames.set(name, (uniqueNames.get(name) ?? 0) + 1);
   }
 
   const studentsList: ClassStudentRow[] = classGroup.students.map((st, idx) => {
-    const key = st.fullName.trim().toLowerCase();
-    const codeKey = (st.studentCode || '').trim().toLowerCase();
-    const idKey = (st.id || '').trim().toLowerCase();
+    const key = normalize(st.fullName);
+    const codeKey = normalize(st.studentCode);
+    const idKey = normalize(st.id);
 
     // Look for matching participant attempts
     const attempts = participantMap.get(idKey) || participantMap.get(codeKey) || (uniqueNames.get(key) === 1 ? participantMap.get(key) : undefined) || [];
