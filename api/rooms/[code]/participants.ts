@@ -1,3 +1,4 @@
+import { roomAttendanceIdentity } from '../../../src/lib/roomAttendanceIdentity.ts';
 import { createClient } from '@supabase/supabase-js';
 
 export default async function handler(req: any, res: any) {
@@ -38,11 +39,7 @@ export default async function handler(req: any, res: any) {
 
     if (error) throw error;
 
-    const identity = (row: { class_name: string; student_name: string }) =>
-      JSON.stringify([row.class_name, row.student_name].map(value =>
-        value.normalize('NFC').trim().replace(/\s+/g, ' ').toLowerCase()
-      ));
-    const unique = new Map((data || []).map(row => [identity(row), row]));
+    const unique = new Map((data || []).map(row => [roomAttendanceIdentity(row), row]));
     const participants = [...unique.values()].map(p => ({
       id: p.id,
       studentName: p.student_name,
@@ -54,7 +51,7 @@ export default async function handler(req: any, res: any) {
     const { data: results, error: resultsError } = await db.from('results')
       .select('student_name,class_name').eq('room_code', code);
     const completedCount = resultsError ? null : new Set(
-      (results || []).map(identity).filter(key => unique.has(key))
+      (results || []).map(roomAttendanceIdentity).filter(key => unique.has(key))
     ).size;
 
     return res.status(200).json({

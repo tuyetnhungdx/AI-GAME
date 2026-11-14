@@ -172,7 +172,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
               <div className="mt-5 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs">
                 <span className="text-slate-400 font-mono">
-                  {game.playCount || 0} lượt chơi
+                  {game.playCount || 0} lượt tham gia
                 </span>
                 <span className="text-cyan-400 font-bold group-hover:translate-x-1 transition-transform flex items-center gap-1">
                   <span>Chơi ngay</span>

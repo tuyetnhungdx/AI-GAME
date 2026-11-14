@@ -1,3 +1,4 @@
+import { roomAttendanceIdentity } from '../src/lib/roomAttendanceIdentity.ts';
 import { createClient } from '@supabase/supabase-js';
 import { groupResultRows, resultColumns } from '../src/lib/resultRows.ts';
 
@@ -35,6 +36,40 @@ export default async function handler(req: any, res: any) {
   // GET: lấy số lượt chơi thật của từng game
 if (req.method === 'GET') {
   try {
+    if (req.query?.metric === 'attendance') {
+      const pageSize = 500;
+      const gamesByRoom = new Map<string, string>();
+      for (let offset = 0; ; offset += pageSize) {
+        const { data, error } = await db.from('shared_game_rooms')
+          .select('room_code,game_id:game_data->>id').order('room_code')
+          .range(offset, offset + pageSize - 1);
+        if (error) throw error;
+        for (const row of data) {
+          if (typeof row.game_id === 'string' && row.game_id) gamesByRoom.set(row.room_code, row.game_id);
+        }
+        if (data.length < pageSize) break;
+      }
+
+      const counts: Record<string, number> = Object.create(null);
+      const seen = new Set<string>();
+      for (let offset = 0; ; offset += pageSize) {
+        const { data, error } = await db.from('room_participants')
+          .select('room_code,class_name,student_name').order('id')
+          .range(offset, offset + pageSize - 1);
+        if (error) throw error;
+        for (const row of data) {
+          const gameId = gamesByRoom.get(row.room_code);
+          if (!gameId) continue;
+          const key = JSON.stringify([row.room_code, roomAttendanceIdentity(row)]);
+          if (seen.has(key)) continue;
+          seen.add(key);
+          counts[gameId] = (counts[gameId] ?? 0) + 1;
+        }
+        if (data.length < pageSize) break;
+      }
+      return res.status(200).json({ success: true, counts });
+    }
+
     const rows = [];
     const pageSize = 500;
     for (let offset = 0; ; offset += pageSize) {

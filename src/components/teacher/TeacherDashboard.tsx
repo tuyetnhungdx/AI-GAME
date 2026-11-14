@@ -309,11 +309,10 @@ const handleSaveEditedGame = async () => {
                 </div>
 
                 <div className="bg-[#0A1424] border border-indigo-500/30 rounded-2xl p-4">
-                  <div className="text-[11px] text-slate-400">Lượt chơi</div>
+                  <div className="text-[11px] text-slate-400">Lượt tham gia</div>
                   <div className="text-2xl font-mono font-black text-indigo-300 mt-1">
                     {totalPlays}
                   </div>
-                  <div className="text-[10px] text-emerald-400 mt-1">+142 tuần này</div>
                 </div>
 
                 <div className="bg-[#0A1424] border border-amber-500/30 rounded-2xl p-4">
@@ -437,7 +436,7 @@ const handleSaveEditedGame = async () => {
                             {g.subject} {g.grade}
                           </span>
                           <span className="text-[11px] text-slate-500 font-mono">
-                            {g.questions.length} câu • {g.playCount || 0} lượt
+                            {g.questions.length} câu • {g.playCount || 0} lượt tham gia
                           </span>
                         </div>
 

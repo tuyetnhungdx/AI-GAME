@@ -28,35 +28,41 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<string>('home');
   const [teacher] = useState<TeacherProfile>(initialTeacher);
   const [games, setGames] = useState<Game[]>(
-  () => loadGames(demoGames)
+  () => loadGames(demoGames).map(game => ({ ...game, playCount: 0 }))
 );
   useEffect(() => {
-  const loadPlayCounts = async () => {
-    try {
-      const response = await fetch('/api/results');
-
-      if (!response.ok) {
-        throw new Error('Không lấy được số lượt chơi');
+    if (!['home', 'teacher-dashboard', 'library'].includes(activeTab)) return;
+    const controller = new AbortController();
+    let loading = false;
+    async function loadPlayCounts() {
+      if (loading || document.hidden) return;
+      loading = true;
+      try {
+        const response = await fetch('/api/results?metric=attendance', { signal: controller.signal });
+        if (!response.ok) throw new Error('Không lấy được số lượt tham gia');
+        const { counts } = await response.json();
+        if (!controller.signal.aborted) {
+          setGames(previous => previous.map(game => ({
+            ...game,
+            playCount: counts[game.id] ?? 0,
+          })));
+        }
+      } catch (error) {
+        if (!controller.signal.aborted) console.error('Lỗi tải số lượt tham gia:', error);
+      } finally {
+        loading = false;
       }
-
-      const data = await response.json();
-      const counts = data?.counts || {};
-
-      setGames(prevGames =>
-        prevGames.map(game => ({
-          ...game,
-          playCount: counts[game.id] || 0,
-        }))
-      );
-    } catch (error) {
-      console.error('Lỗi tải số lượt chơi:', error);
     }
-  };
 
-  void loadPlayCounts();
-  window.addEventListener('focus', loadPlayCounts);
-  return () => window.removeEventListener('focus', loadPlayCounts);
-}, [activeTab]);
+    void loadPlayCounts();
+    const timer = window.setInterval(loadPlayCounts, 15000);
+    window.addEventListener('focus', loadPlayCounts);
+    return () => {
+      controller.abort();
+      window.clearInterval(timer);
+      window.removeEventListener('focus', loadPlayCounts);
+    };
+  }, [activeTab]);
   const [classes, setClasses] = useState<ClassGroup[]>(() => {
   try {
     const raw = localStorage.getItem('ai-game:classes:v1');
